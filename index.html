@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Geografia europea</title>
-<meta name="description" id="metaDesc" content="Quiz di geografia: fiumi, mari e catene montuose d'Europa.">
+<meta name="description" id="metaDesc" content="Quiz di geografia: fiumi, mari, catene montuose, Stati e capitali d'Europa.">
 <meta name="theme-color" content="#1F5FA8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -65,6 +65,9 @@
   .riverHit{fill:none;stroke:rgba(0,0,0,0);stroke-width:16;pointer-events:stroke;cursor:pointer}
   .pin{stroke:#fff;stroke-width:2.5;pointer-events:none}
   .pinHit{fill:transparent;cursor:pointer}
+  .country.target{cursor:pointer;transition:fill .15s}
+  .mark{stroke:#fff;stroke-width:2;pointer-events:none}
+  .markHit{fill:transparent;cursor:pointer}
   .chip{position:absolute;transform:translate(-50%,-50%);padding:3px 8px;border-radius:999px;border:1.5px solid var(--bad);background:#fff;color:var(--bad);font-size:11px;font-weight:700;line-height:1.2;white-space:nowrap;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.18)}
   .chip.up{transform:translate(-50%,-170%)}
   .chip.name{border-color:var(--btn);color:var(--ink);background:rgba(255,255,255,.92);font-size:10px;padding:2px 6px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
@@ -163,11 +166,14 @@
   const EU=G.eu;
   const MAPS={
     eu:{w:EU.w,h:EU.h,portrait:false,
-      land:EU.land, countries:EU.countries, lakes:EU.lakes, rivers:EU.rivers, seas:EU.seas, ranges:EU.ranges, pins:[],
+      land:EU.land, countries:EU.countries, lakes:EU.lakes, rivers:EU.rivers, seas:EU.seas, ranges:EU.ranges, pins:EU.cities,
       modes:[
         {id:'rivers',kind:'river',targets:()=>EU.rivers.map(r=>({id:r.id,name:pn(r.id,r.name),cx:r.cx,cy:r.cy}))},
         {id:'seas',kind:'sea',targets:()=>EU.seas.map(s=>({id:s.id,name:pn(s.id,s.name),cx:s.cx,cy:s.cy}))},
-        {id:'ranges',kind:'zone',targets:()=>EU.ranges.map(r=>({id:r.id,name:pn(r.id,r.name),cx:r.cx,cy:r.cy}))}
+        {id:'ranges',kind:'zone',targets:()=>EU.ranges.map(r=>({id:r.id,name:pn(r.id,r.name),cx:r.cx,cy:r.cy}))},
+        {id:'countries',kind:'country',targets:()=>EU.countries.filter(c=>c.target).map(c=>({id:c.id,name:pn(c.id,c.name),cx:c.cx,cy:c.cy}))},
+        // the cards are capitals but the answer is their country, so the target id is the country's
+        {id:'capitals',kind:'country',dots:true,targets:()=>EU.cities.filter(c=>c.capital).map(c=>({id:c.country,name:pn(c.id,c.name),cx:c.cx,cy:c.cy}))}
       ]}
   };
 
@@ -196,6 +202,7 @@
     box.classList.toggle('zoomed',v.z>1);el('zoomReset').textContent=v.z>1.01?Math.round(v.z*100)+'%':t('zoom');
     // tap areas sized in screen px (map units per px = u), so thin rivers and small pins stay finger-sized at any zoom
     const u=vw/(box.clientWidth||vw);nodes.riverHits.forEach(n=>n.style.strokeWidth=Math.max(16,30*u));nodes.pinHits.forEach(n=>n.setAttribute('r',Math.max(11,18*u)));
+    nodes.markHits.forEach(n=>n.setAttribute('r',Math.max(11,18*u)));nodes.marks.forEach(n=>n.setAttribute('r',Math.max(5,7*u)));
     renderChips();}
   window.addEventListener('resize',applyView);
   const ptrs={};let moved=0,dragged=false;
@@ -224,19 +231,22 @@
   el('namesBtn').onclick=()=>{S.names=!S.names;render();};
 
   // ---------- SVG build (once per map) ----------
-  const nodes={land:[],countries:[],lakes:[],seas:[],ranges:[],rivers:[],riverHits:[],pins:[],pinHits:[]};
+  const nodes={land:[],countries:[],lakes:[],seas:[],ranges:[],rivers:[],riverHits:[],marks:[],markHits:[],pins:[],pinHits:[]};
   function mk(tag,attrs,cls){const n=document.createElementNS(SVGNS,tag);for(const k in attrs)n.setAttribute(k,attrs[k]);if(cls)n.setAttribute('class',cls);return n;}
   function buildSvg(){svg.innerHTML='';for(const k in nodes)nodes[k]=[];const m=map();
     box.style.aspectRatio=m.w+' / '+m.h;el('mapPanel').classList.toggle('portrait',m.portrait);
     // untargeted water (Marmara, Barents, White Sea) is simply this background
     svg.appendChild(mk('rect',{x:0,y:0,width:m.w,height:m.h,fill:'#DCEAF5'}));
     m.land.forEach(l=>{const n=mk('path',{d:l.d},'land');svg.appendChild(n);nodes.land.push(n);});
-    m.countries.forEach(c=>{const n=mk('path',{d:c.d},'country');svg.appendChild(n);nodes.countries.push(n);});
+    m.countries.forEach(c=>{const n=mk('path',{d:c.d},'country'+(c.target?' target':''));if(c.target)n.onclick=()=>pickTarget(c.id);svg.appendChild(n);nodes.countries.push(n);});
     m.lakes.forEach(l=>{const n=mk('path',{d:l.d},'lake');svg.appendChild(n);nodes.lakes.push(n);});
     m.seas.forEach(s=>{const n=mk('path',{d:s.d},'sea');n.onclick=()=>pickTarget(s.id);svg.appendChild(n);nodes.seas.push(n);});
     m.ranges.forEach(r=>{const n=mk('path',{d:r.d},'range');n.onclick=()=>pickTarget(r.id);svg.appendChild(n);nodes.ranges.push(n);});
     m.rivers.forEach(r=>{const n=mk('path',{d:r.d},'river');svg.appendChild(n);nodes.rivers.push(n);});
     m.rivers.forEach(r=>{const n=mk('path',{d:r.d},'riverHit');n.onclick=()=>pickTarget(r.id);svg.appendChild(n);nodes.riverHits.push(n);});
+    // microstates get a marker, indexed like m.countries.filter(c=>c.small)
+    m.countries.filter(c=>c.small).forEach(c=>{const n=mk('circle',{cx:c.cx,cy:c.cy,r:5},'mark');svg.appendChild(n);nodes.marks.push(n);});
+    m.countries.filter(c=>c.small).forEach(c=>{const n=mk('circle',{cx:c.cx,cy:c.cy,r:11},'markHit');n.onclick=()=>pickTarget(c.id);svg.appendChild(n);nodes.markHits.push(n);});
     m.pins.forEach(p=>{const n=mk('circle',{cx:p.cx,cy:p.cy,r:11},'pin');svg.appendChild(n);nodes.pins.push(n);});
     m.pins.forEach(p=>{const n=mk('circle',{cx:p.cx,cy:p.cy,r:11},'pinHit');n.onclick=()=>pickTarget(p.id);svg.appendChild(n);nodes.pinHits.push(n);});}
 
@@ -247,7 +257,7 @@
   // after Verifica: red chips with the right name over wrong placements; with S.names: a neutral label on every target
   function renderChips(){const c=el('chips');c.innerHTML='';if(!S.checked&&!S.names)return;const v=S.view;const vw=W()/v.z,vh=H()/v.z;const vx=v.cx-vw/2,vy=v.cy-vh/2;
     T.forEach(t=>{const wrong=S.checked&&S.placed[t.id]&&S.placed[t.id]!==t.id;if(!wrong&&!S.names)return;
-      const s=document.createElement('span');s.className='chip'+(wrong?'':' name')+(mode().kind==='pin'?' up':'');s.textContent=t.name;
+      const s=document.createElement('span');s.className='chip'+(wrong?'':' name')+(mode().kind==='pin'||mode().dots?' up':'');s.textContent=t.name;
       s.style.left=((t.cx-vx)/vw*100).toFixed(2)+'%';s.style.top=((t.cy-vy)/vh*100).toFixed(2)+'%';c.appendChild(s);});}
   function render(){const m=map(),M=mode(),k=M.kind;const cnt={ok:0};
     document.title=t('map.'+S.map+'.title');el('title').textContent=document.title;el('subtitle').textContent=mt('subtitle');
@@ -267,7 +277,14 @@
     m.rivers.forEach((r,i)=>{const n=nodes.rivers[i];const active=k==='river';
       n.setAttribute('stroke',active?status(r.id,'#3F7FB5',tint(i,42,75),'#B0B0AA',cnt):'#8FB6D3');
       n.setAttribute('stroke-width',active?(S.placed[r.id]||S.checked?4.5:3):1.6);nodes.riverHits[i].style.display=active?'':'none';});
-    m.pins.forEach((p,i)=>{const n=nodes.pins[i];n.style.display=nodes.pinHits[i].style.display=k==='pin'?'':'none';if(k==='pin')n.setAttribute('fill',status(p.id,'#6B6B66',tint(i,45,70),'#D7D7D1',cnt));});
+    // status() counts, so each target country's colour is computed once and reused for its marker
+    const cf={};m.countries.forEach((c,i)=>{const n=nodes.countries[i];const active=k==='country'&&c.target;
+      if(active)cf[c.id]=status(c.id,'#E7E3D6',tint(i,55,55),'#D7D7D1',cnt);
+      // inline styles, since the .country rule beats attributes; '' falls back to its background look
+      n.style.fill=active?cf[c.id]:'';n.style.stroke=active?'#8B8B84':'';n.style.pointerEvents=active?'auto':'';});
+    m.countries.filter(c=>c.small).forEach((c,i)=>{const on=k==='country';nodes.marks[i].style.display=nodes.markHits[i].style.display=on?'':'none';if(on)nodes.marks[i].setAttribute('fill',cf[c.id]);});
+    m.pins.forEach((p,i)=>{const n=nodes.pins[i];n.style.display=k==='pin'||M.dots?'':'none';nodes.pinHits[i].style.display=k==='pin'?'':'none';
+      n.setAttribute('fill',k==='pin'?status(p.id,'#6B6B66',tint(i,45,70),'#D7D7D1',cnt):'#1C1C1A');n.setAttribute('r',M.dots?4:11);n.style.strokeWidth=M.dots?1.5:'';});
     // cards
     const placedCards=new Set(Object.values(S.placed));const cards=el('cards');cards.innerHTML='';
     const left=S.order.filter(a=>!placedCards.has(a));
