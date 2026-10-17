@@ -242,3 +242,10 @@ def test_capital_table_entry_without_match_exits(places_records, built, fit, mon
     monkeypatch.setattr(b, 'CAPITALS', b.CAPITALS + [('ZZZ', 'Nowhere')])
     with pytest.raises(SystemExit, match='ZZZ'):
         b.build_cities(places_records, built['eu']['countries'], fit)
+
+
+@needs_all
+def test_duplicate_capital_record_exits(places_records, built, fit):
+    rec, g = next((r, g) for r, g in places_records if r['adm0cap'] == 1 and r['adm0_a3'] == 'AUT')
+    with pytest.raises(SystemExit, match='AUT'):
+        b.build_cities(places_records + [(rec, g)], built['eu']['countries'], fit)

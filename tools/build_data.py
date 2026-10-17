@@ -334,6 +334,7 @@ COUNTRY_ANCHORS: dict[str, tuple[float, float]] = {
     'c:Norvegia': (388.0, 250.0),  # southern mainland, not Svalbard
     'c:Croazia': (445.0, 458.0),  # inland arm, off the Kvarner coast
     'c:RegnoUnito': (295.0, 355.0),  # English Midlands, centred on Great Britain
+    'c:Italia': (432.0, 512.0),  # Abruzzo, clear of the Vatican and San Marino chips
 }
 
 
