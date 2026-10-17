@@ -1,8 +1,8 @@
 # eugeo — Geografia europea
 
-A small, dependency-free geography quiz in Italian for learning the main rivers, seas, mountain ranges, countries and capitals of Europe. Pick a card, tap the matching place on the map, then press **Verifica** to see what matched.
+A small, dependency-free geography quiz for learning the main rivers, seas, mountain ranges, countries and capitals of Europe. Pick a card, tap the matching place on the map, then press **Verifica** to see what matched.
 
-It is a single static page: `index.html` (markup, styles, logic), `i18n.js` (UI strings and place names per language) and `data.js` (map geometry, generated). Italian is the only language today; `i18n.js` is structured so more can be added, and the language selector appears as soon as there is more than one. No build step, no backend for the site itself.
+It is a single static page: `index.html` (markup, styles, logic), `i18n.js` (UI strings and place names per language) and `data.js` (map geometry, generated). It speaks Italian by default, plus English, French, German and Spanish: pick one in the selector at the top, or open the page with `?lang=en` (or `fr`, `de`, `es`, `it`). The choice is remembered in the browser. No build step, no backend for the site itself.
 
 ## Decks
 

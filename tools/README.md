@@ -51,7 +51,7 @@ The `c:` lines of `places` in `../i18n.js` are generated: country names in Itali
 .venv/bin/python tools/country_names.py   # prints the c: block, sorted by ID
 ```
 
-After a Natural Earth update (or a change to `PRECLIP`/`WINDOW` that adds or drops countries), run it and paste its output over the `c:` lines in `i18n.js`, then run `test_i18n.py`. `OVERRIDES` in the script replaces Natural Earth names where they don't suit the game (today Monaco, which NE calls *Principato di Monaco* in Italian); it is applied last, and the script stops if an override names an unknown ID or a name is empty.
+After a Natural Earth update (or a change to `PRECLIP`/`WINDOW` that adds or drops countries), run it and paste its output over the `c:` lines in `i18n.js`, then run `test_i18n.py`. `OVERRIDES` in the script replaces Natural Earth names where they don't suit the game (today Monaco, which NE calls *Principato di Monaco* in Italian, and the short German forms *Zypern* and *Moldau* instead of NE's *Republik Zypern* and *Republik Moldau*); it is applied last, and the script stops if an override names an unknown ID or a name is empty.
 
 ## Preview
 
