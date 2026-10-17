@@ -1,6 +1,19 @@
 # tools/test_build_data.py
+import pytest
 from shapely.geometry import Polygon, LineString, MultiLineString
 import build_data as b
+from build_data import CACHE
+
+
+@pytest.fixture(scope='module')
+def fit():
+    return b.Fit.from_window(b.WINDOW)
+
+
+@pytest.fixture(scope='module')
+def rivers_records():
+    return b.read_shp(b.fetch('rivers', CACHE))
+
 
 def test_to_path_polygon_with_hole():
     p = Polygon([(0,0),(10,0),(10,10),(0,10)], [[(2,2),(4,2),(4,4),(2,4)]])
@@ -23,3 +36,17 @@ def test_fit_north_is_up():
     y_north = f.project(LineString([(10,70),(10,70)])).coords[0][1]
     y_south = f.project(LineString([(10,40),(10,40)])).coords[0][1]
     assert y_north < y_south
+
+needs_rivers = pytest.mark.skipif(not (CACHE/'ne_10m_rivers_lake_centerlines').exists(), reason='no cache')
+
+@needs_rivers
+def test_each_river_has_all_parts(rivers_records, fit):
+    out = b.build_rivers(rivers_records, fit)
+    assert [r['id'] for r in out] == [r[0] for r in b.RIVERS]
+    counts = {r[0]: sum(1 for rec,_ in rivers_records if rec['name_en'] in r[2]) for r in b.RIVERS}
+    assert counts['r:Tago'] == 3 and counts['r:Reno'] == 4 and counts['r:Volga'] == 2  # River + Lake Centerline parts
+
+@needs_rivers
+def test_river_paths_nonempty_and_inside(rivers_records, fit):
+    for r in b.build_rivers(rivers_records, fit):
+        assert r['d'].startswith('M') and 0 <= r['cx'] <= b.W and 0 <= r['cy'] <= b.H

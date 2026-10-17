@@ -10,6 +10,7 @@ from pyproj import Transformer
 from shapely.geometry import (GeometryCollection, LineString, MultiLineString,
                               MultiPolygon, Polygon, shape)
 from shapely.geometry.base import BaseGeometry
+from shapely.ops import unary_union
 
 NE_BASE = 'https://naciscdn.org/naturalearth/10m/'
 DATASETS: dict[str, str] = {
@@ -151,6 +152,47 @@ def anchor(geom: BaseGeometry) -> tuple[float, float]:
 def simplify(geom: BaseGeometry, tol_km: float) -> BaseGeometry:
     """Simplify a geometry in EPSG:3035 metres."""
     return geom.simplify(tol_km * 1000, preserve_topology=True)
+
+
+def feature_to_canvas(geom: BaseGeometry, fit: Fit, tol_km: float) -> BaseGeometry:
+    """lon/lat geometry -> metres -> simplified -> clipped -> canvas px."""
+    return fit.scale_geom(fit.clip(simplify(fit.to_metres(geom), tol_km)))
+
+
+def _feature(fid: str, name: str, geom: BaseGeometry, fit: Fit, tol_km: float,
+             anchors: dict[str, tuple[float, float]] | None = None) -> dict:
+    g = feature_to_canvas(geom, fit, tol_km)
+    cx, cy = (anchors or {}).get(fid) or anchor(g)
+    return {'id': fid, 'name': name, 'd': to_path(g), 'cx': cx, 'cy': cy}
+
+
+RIVERS: list[tuple[str, str, list[str]]] = [
+    ('r:Tago', 'Tago', ['Tagus']),
+    ('r:Ebro', 'Ebro', ['Ebro']),
+    ('r:Loira', 'Loira', ['Loire']),
+    ('r:Tamigi', 'Tamigi', ['Thames']),
+    ('r:Rodano', 'Rodano', ['Rhône']),
+    ('r:Po', 'Po', ['Po']),
+    ('r:Reno', 'Reno', ['Rhine']),
+    ('r:Elba', 'Elba', ['Elbe']),
+    ('r:Danubio', 'Danubio', ['Danube']),
+    ('r:Vistola', 'Vistola', ['Vistula']),
+    ('r:Dnepr', 'Dnepr', ['Dnieper']),
+    ('r:Don', 'Don', ['Don']),
+    ('r:Volga', 'Volga', ['Volga']),
+]
+
+RIVER_ANCHORS: dict[str, tuple[float, float]] = {}
+
+
+def build_rivers(records: list[tuple[dict, BaseGeometry]], fit: Fit) -> list[dict]:
+    out = []
+    for fid, name, ne in RIVERS:
+        parts = [g for rec, g in records if rec['name_en'] in ne]
+        if not parts:
+            raise SystemExit(f'river {fid}: no records with name_en in {ne}')
+        out.append(_feature(fid, name, unary_union(parts), fit, 2, RIVER_ANCHORS))
+    return out
 
 
 def main() -> None:
