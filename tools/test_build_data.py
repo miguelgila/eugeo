@@ -47,7 +47,13 @@ def test_fit_maps_window_inside_canvas():
     f = b.Fit.from_window(b.WINDOW)
     for lon, lat in [(-25,33),(70,33),(70,72),(-25,72),(20,55)]:
         x, y = f.project(LineString([(lon,lat),(lon,lat)])).coords[0]
-        assert b.MARGIN - 1 <= x <= b.W - b.MARGIN + 1 and b.MARGIN - 1 <= y <= b.H - b.MARGIN + 1
+        assert -1 <= x <= b.W + 1 and -1 <= y <= b.H + 1
+
+def test_fit_window_fills_canvas():
+    f = b.Fit.from_window(b.WINDOW)
+    minx, miny, maxx, maxy = f.bbox
+    assert b.H == round(b.W * (maxy - miny) / (maxx - minx))
+    assert abs((maxx - minx) * f.scale - b.W) <= 1 and abs((maxy - miny) * f.scale - b.H) <= 1
 
 def test_fit_north_is_up():
     f = b.Fit.from_window(b.WINDOW)
@@ -144,7 +150,7 @@ def test_all_targets_inside_canvas(built):
             # not clipped: the Urals and Caspian must not touch the right edge
     for fid in ('m:MontiUrali','s:Caspio'):
         f = next(x for layer in ('ranges','seas') for x in built['eu'][layer] if x['id']==fid)
-        assert max(float(v) for v in re.findall(r'[ML](-?\d+\.\d)', f['d'])) < b.W - b.MARGIN + 0.5
+        assert max(float(v) for v in re.findall(r'[ML](-?\d+\.\d)', f['d'])) < b.W - 1
 
 @needs_all
 def test_data_js_is_parseable(tmp_path, built):

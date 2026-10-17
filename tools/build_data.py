@@ -26,8 +26,8 @@ DATASETS: dict[str, str] = {
     'places': 'cultural/ne_10m_populated_places_simple',
 }
 
-W, H = 1000, 800
-MARGIN = 16
+W = 1000
+MARGIN = 0
 WINDOW = (-25.0, 33.0, 70.0, 72.0)  # lon_min, lat_min, lon_max, lat_max
 # Padded lon/lat box clipped before projecting: geometry spanning the antimeridian or near the
 # EPSG:3035 antipode projects to garbage that can land on the canvas.
@@ -71,6 +71,28 @@ def read_shp(shp: Path) -> list[tuple[dict, BaseGeometry]]:
                 for sr in r.iterShapeRecords()]
 
 
+def window_bbox(window: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
+    """EPSG:3035 bbox (metres) of a lon/lat window, sampled every 0.5 degrees along its edges."""
+    lon0, lat0, lon1, lat1 = window
+    n_lon = round((lon1 - lon0) / 0.5)
+    n_lat = round((lat1 - lat0) / 0.5)
+    lons = [lon0 + i * (lon1 - lon0) / n_lon for i in range(n_lon + 1)]
+    lats = [lat0 + i * (lat1 - lat0) / n_lat for i in range(n_lat + 1)]
+    edge = ([(lon, lat0) for lon in lons] + [(lon1, lat) for lat in lats]
+            + [(lon, lat1) for lon in reversed(lons)] + [(lon0, lat) for lat in reversed(lats)])
+    xs, ys = _TO_LAEA.transform(*zip(*edge))
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def _canvas_height(window: tuple[float, float, float, float]) -> int:
+    """Canvas height at width W matching the projected window's aspect, so the map fills it."""
+    minx, miny, maxx, maxy = window_bbox(window)
+    return round(W * (maxy - miny) / (maxx - minx))
+
+
+H = _canvas_height(WINDOW)
+
+
 class Fit:
     """Maps lon/lat to canvas pixels via EPSG:3035, fitting the window into the canvas."""
 
@@ -82,15 +104,7 @@ class Fit:
 
     @classmethod
     def from_window(cls, window: tuple[float, float, float, float]) -> 'Fit':
-        lon0, lat0, lon1, lat1 = window
-        n_lon = round((lon1 - lon0) / 0.5)
-        n_lat = round((lat1 - lat0) / 0.5)
-        lons = [lon0 + i * (lon1 - lon0) / n_lon for i in range(n_lon + 1)]
-        lats = [lat0 + i * (lat1 - lat0) / n_lat for i in range(n_lat + 1)]
-        edge = ([(lon, lat0) for lon in lons] + [(lon1, lat) for lat in lats]
-                + [(lon, lat1) for lon in reversed(lons)] + [(lon0, lat) for lat in reversed(lats)])
-        xs, ys = _TO_LAEA.transform(*zip(*edge))
-        minx, miny, maxx, maxy = min(xs), min(ys), max(xs), max(ys)
+        minx, miny, maxx, maxy = window_bbox(window)
         bw, bh = maxx - minx, maxy - miny
         scale = min((W - 2 * MARGIN) / bw, (H - 2 * MARGIN) / bh)
         ox = (W - bw * scale) / 2 - minx * scale
