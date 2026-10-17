@@ -50,7 +50,7 @@ sips -s format png tools/preview.svg --out tools/preview.png   # macOS
 
 ## How it works
 
-`build()` loads every dataset, builds each layer and returns `{'eu': {...}}`; `write_data_js()` writes it as `window.GEO = …` with a `// GENERATED … do not edit.` header naming the Natural Earth version. Only `ne_10m_land`'s version is recorded there and in `version.ne`; the others are in each dataset's `*.VERSION.txt` in the cache.
+`build()` loads every dataset, builds each layer and returns `{'eu': {...}}`; `write_data_js()` writes it as `window.GEO = …` with a `// GENERATED … do not edit.` header listing every Natural Earth dataset's version (e.g. `land 5.1.1, countries 5.1.1, …`). The same versions are in `version.ne`, keyed by the short names in `DATASETS`, read from each dataset's `*.VERSION.txt` in the cache.
 
 ### Projection and canvas
 
@@ -63,7 +63,7 @@ sips -s format png tools/preview.svg --out tools/preview.png   # macOS
 
 ### Layers and tables
 
-All the content decisions live in tables near the top of `build_data.py`. IDs are stable keys derived from the Italian name, and the Italian `name` comes from these tables, not from Natural Earth's `name_it`.
+All the content decisions live in tables near the top of `build_data.py`. For rivers, seas and ranges, IDs are stable keys derived from the Italian name, and the Italian `name` comes from these tables, not from Natural Earth's `name_it`. Countries use NE `name_it` (see below).
 
 - **`RIVERS`**: `(id, Italian name, [NE name_en values])`. Every record whose `name_en` is in the list is merged, river and lake-centreline parts alike.
 - **`SEAS`**: the sea merge table. Natural Earth splits the seas into many non-overlapping polygons, so each target lists the NE `name` values to union (e.g. *Mar Baltico* is Baltic Sea plus its gulfs, Øresund and two bays). `points` adds polygons by location, for the unnamed Great Belt polygon. `parent` marks the five inner seas of the Mediterranean (`s:Ligure`, `s:Tirreno`, `s:Adriatico`, `s:Ionio`, `s:Egeo`); `s:Mediterraneo` itself is only the remainder outside them, and the game colours its children with it. Comments in the table record Natural Earth naming quirks (no Celtic Sea polygon, Sea of the Hebrides named `Inner Seas`).
@@ -83,7 +83,6 @@ Natural Earth has no polygon for the Apennines or the Cantabrian Mountains, so t
 ## Known limitations
 
 - **Country borders are not topology-shared.** Each country is simplified on its own (`build_countries()`), so neighbouring borders can show thin slivers or small overlaps. That is acceptable while countries are background. Before adding a countries deck, switch that layer to topology-preserving simplification, e.g. run the countries through `mapshaper` or simplify the arcs of a shared topology, so that adjacent countries share one border line.
-- **Only the land version is recorded** in `data.js`; see above.
 
 ## Adding cities or capitals
 

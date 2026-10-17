@@ -17,9 +17,9 @@ license in LICENSE.
    The pipeline also downloads ne_10m_populated_places_simple 5.1.2,
    but nothing from it is emitted yet (cities is empty).
 
-   The header of data.js and window.GEO.eu.version.ne record only the
-   version of ne_10m_land; the other versions above are those in each
-   dataset's *.VERSION.txt at the time of the last build.
+   The versions used for each build are recorded in the header of
+   data.js and in window.GEO.eu.version.ne, read from each dataset's
+   *.VERSION.txt; the list above matches the last build.
 
    Natural Earth is in the public domain. "Made with Natural Earth.
    Free vector and raster map data @ naturalearthdata.com."

@@ -89,7 +89,7 @@ def test_unmapped_seas_are_logged(marine_records, fit):
     b.build_seas(marine_records, fit, log=seen.append)
     assert any('Sea of Marmara' in m for m in seen)
     assert not any('Gulf of Bothnia' in m for m in seen)
-    for merged in ('Golfe du Lion', 'Waddenzee', 'Mecklenburger Bucht'):
+    for merged in ('Golfe du Lion', 'Waddenzee', 'Mecklenburger Bucht', 'Denmark Strait', 'Garabogaz Bay'):
         assert not any(merged in m for m in seen)
 
 @needs_marine
@@ -156,6 +156,9 @@ def test_all_targets_inside_canvas(built):
 def test_data_js_is_parseable(tmp_path, built):
     out = tmp_path/'data.js'; b.write_data_js(built, out)
     txt = out.read_text(); assert txt.startswith('// GENERATED')
+    header = txt.split('\n', 1)[0]
+    assert all(f'{k} {v}' in header for k, v in built['eu']['version']['ne'].items())
+    assert set(built['eu']['version']['ne']) == set(b.DATASETS)
     body = txt.split('window.GEO = ',1)[1].rstrip().rstrip(';')
     d = json.loads(body); assert set(d['eu']) == {'w','h','version','land','countries','lakes','rivers','seas','ranges','cities'}
 
