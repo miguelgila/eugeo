@@ -15,6 +15,7 @@ OVERRIDES: dict[str, dict[str, str]] = {
     'c:PrincipatodiMonaco': {'it': 'Monaco', 'en': 'Monaco', 'fr': 'Monaco', 'de': 'Monaco', 'es': 'Mónaco'},
     'c:Cipro': {'de': 'Zypern'},
     'c:Moldavia': {'de': 'Moldau'},
+    'c:Romania': {'es': 'Rumanía'},
 }
 
 
