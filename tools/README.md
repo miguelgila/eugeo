@@ -41,6 +41,18 @@ cd tools && ../.venv/bin/pytest
 
 `test_build_data.py` covers the path writer, the projection fit, each target list, the pre-clip, the country IDs, the roster and its `target`/`small` flags, the country coverage, the capitals (one per roster country, each inside its country), the anchor overrides, a parse of the written `data.js` and a size budget (under 600 kB). Tests that need the downloaded datasets are skipped when `tools/cache/` is missing; run a build first.
 
+`test_i18n.py` loads `../i18n.js` and `../data.js` with `node` (skipped when node is not installed) and checks that `langs` matches `ui`, that every language has every UI key with the same `{0}`/`{1}` placeholders as Italian, that every river, sea, range, capital and country ID has a non-empty name in `it`, `en`, `fr`, `de` and `es`, and that `country_names.py` yields exactly the `c:` IDs in `i18n.js`.
+
+## Country names
+
+The `c:` lines of `places` in `../i18n.js` are generated: country names in Italian, English, French, German and Spanish come from Natural Earth's `NAME_IT/EN/FR/DE/ES` columns, for the same countries `build_countries()` keeps.
+
+```sh
+.venv/bin/python tools/country_names.py   # prints the c: block, sorted by ID
+```
+
+After a Natural Earth update (or a change to `PRECLIP`/`WINDOW` that adds or drops countries), run it and paste its output over the `c:` lines in `i18n.js`, then run `test_i18n.py`. `OVERRIDES` in the script replaces Natural Earth names where they don't suit the game (today Monaco, which NE calls *Principato di Monaco* in Italian); it is applied last, and the script stops if an override names an unknown ID or a name is empty.
+
 ## Preview
 
 ```sh
