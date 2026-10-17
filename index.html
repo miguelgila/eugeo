@@ -66,7 +66,7 @@
   .pin{stroke:#fff;stroke-width:2.5;pointer-events:none}
   .pinHit{fill:transparent;cursor:pointer}
   .country.target{cursor:pointer;transition:fill .15s}
-  .mark{stroke:#fff;stroke-width:2;pointer-events:none}
+  .mark{stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke;pointer-events:none}
   .markHit{fill:transparent;cursor:pointer}
   .chip{position:absolute;transform:translate(-50%,-50%);padding:3px 8px;border-radius:999px;border:1.5px solid var(--bad);background:#fff;color:var(--bad);font-size:11px;font-weight:700;line-height:1.2;white-space:nowrap;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.18)}
   .chip.up{transform:translate(-50%,-170%)}
@@ -202,7 +202,7 @@
     box.classList.toggle('zoomed',v.z>1);el('zoomReset').textContent=v.z>1.01?Math.round(v.z*100)+'%':t('zoom');
     // tap areas sized in screen px (map units per px = u), so thin rivers and small pins stay finger-sized at any zoom
     const u=vw/(box.clientWidth||vw);nodes.riverHits.forEach(n=>n.style.strokeWidth=Math.max(16,30*u));nodes.pinHits.forEach(n=>n.setAttribute('r',Math.max(11,18*u)));
-    nodes.markHits.forEach(n=>n.setAttribute('r',Math.max(11,18*u)));nodes.marks.forEach(n=>n.setAttribute('r',Math.max(5,7*u)));
+    nodes.markHits.forEach(n=>n.setAttribute('r',Math.max(11,18*u)));nodes.marks.forEach(n=>n.setAttribute('r',6*u)); // markers: 6 px at any zoom
     renderChips();}
   window.addEventListener('resize',applyView);
   const ptrs={};let moved=0,dragged=false;
@@ -244,9 +244,9 @@
     m.ranges.forEach(r=>{const n=mk('path',{d:r.d},'range');n.onclick=()=>pickTarget(r.id);svg.appendChild(n);nodes.ranges.push(n);});
     m.rivers.forEach(r=>{const n=mk('path',{d:r.d},'river');svg.appendChild(n);nodes.rivers.push(n);});
     m.rivers.forEach(r=>{const n=mk('path',{d:r.d},'riverHit');n.onclick=()=>pickTarget(r.id);svg.appendChild(n);nodes.riverHits.push(n);});
-    // microstates get a marker, indexed like m.countries.filter(c=>c.small)
-    m.countries.filter(c=>c.small).forEach(c=>{const n=mk('circle',{cx:c.cx,cy:c.cy,r:5},'mark');svg.appendChild(n);nodes.marks.push(n);});
-    m.countries.filter(c=>c.small).forEach(c=>{const n=mk('circle',{cx:c.cx,cy:c.cy,r:11},'markHit');n.onclick=()=>pickTarget(c.id);svg.appendChild(n);nodes.markHits.push(n);});
+    // roster microstates get a marker, indexed like m.countries.filter(c=>c.small&&c.target)
+    m.countries.filter(c=>c.small&&c.target).forEach(c=>{const n=mk('circle',{cx:c.cx,cy:c.cy,r:5},'mark');svg.appendChild(n);nodes.marks.push(n);});
+    m.countries.filter(c=>c.small&&c.target).forEach(c=>{const n=mk('circle',{cx:c.cx,cy:c.cy,r:11},'markHit');n.onclick=()=>pickTarget(c.id);svg.appendChild(n);nodes.markHits.push(n);});
     m.pins.forEach(p=>{const n=mk('circle',{cx:p.cx,cy:p.cy,r:11},'pin');svg.appendChild(n);nodes.pins.push(n);});
     m.pins.forEach(p=>{const n=mk('circle',{cx:p.cx,cy:p.cy,r:11},'pinHit');n.onclick=()=>pickTarget(p.id);svg.appendChild(n);nodes.pinHits.push(n);});}
 
@@ -279,10 +279,10 @@
       n.setAttribute('stroke-width',active?(S.placed[r.id]||S.checked?4.5:3):1.6);nodes.riverHits[i].style.display=active?'':'none';});
     // status() counts, so each target country's colour is computed once and reused for its marker
     const cf={};m.countries.forEach((c,i)=>{const n=nodes.countries[i];const active=k==='country'&&c.target;
-      if(active)cf[c.id]=status(c.id,'#E7E3D6',tint(i,55,55),'#D7D7D1',cnt);
+      if(active)cf[c.id]=status(c.id,'#F1E7CF',tint(i,55,55),'#D7D7D1',cnt);
       // inline styles, since the .country rule beats attributes; '' falls back to its background look
       n.style.fill=active?cf[c.id]:'';n.style.stroke=active?'#8B8B84':'';n.style.pointerEvents=active?'auto':'';});
-    m.countries.filter(c=>c.small).forEach((c,i)=>{const on=k==='country';nodes.marks[i].style.display=nodes.markHits[i].style.display=on?'':'none';if(on)nodes.marks[i].setAttribute('fill',cf[c.id]);});
+    m.countries.filter(c=>c.small&&c.target).forEach((c,i)=>{const on=k==='country';nodes.marks[i].style.display=nodes.markHits[i].style.display=on?'':'none';if(on)nodes.marks[i].setAttribute('fill',cf[c.id]);});
     m.pins.forEach((p,i)=>{const n=nodes.pins[i];n.style.display=k==='pin'||M.dots?'':'none';nodes.pinHits[i].style.display=k==='pin'?'':'none';
       n.setAttribute('fill',k==='pin'?status(p.id,'#6B6B66',tint(i,45,70),'#D7D7D1',cnt):'#1C1C1A');n.setAttribute('r',M.dots?4:11);n.style.strokeWidth=M.dots?1.5:'';});
     // cards
