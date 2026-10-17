@@ -15,6 +15,11 @@ def rivers_records():
     return b.read_shp(b.fetch('rivers', CACHE))
 
 
+@pytest.fixture(scope='module')
+def marine_records():
+    return b.read_shp(b.fetch('marine', CACHE))
+
+
 def test_to_path_polygon_with_hole():
     p = Polygon([(0,0),(10,0),(10,10),(0,10)], [[(2,2),(4,2),(4,4),(2,4)]])
     assert b.to_path(p) == "M0.0 0.0L10.0 0.0L10.0 10.0L0.0 10.0ZM2.0 2.0L4.0 2.0L4.0 4.0L2.0 4.0Z"
@@ -50,3 +55,18 @@ def test_each_river_has_all_parts(rivers_records, fit):
 def test_river_paths_nonempty_and_inside(rivers_records, fit):
     for r in b.build_rivers(rivers_records, fit):
         assert r['d'].startswith('M') and 0 <= r['cx'] <= b.W and 0 <= r['cy'] <= b.H
+
+needs_marine = pytest.mark.skipif(not (CACHE/'ne_10m_geography_marine_polys').exists(), reason='no cache')
+
+@needs_marine
+def test_seas_cover_spec_list(marine_records, fit):
+    out = b.build_seas(marine_records, fit, log=lambda *_: None)
+    assert [s['id'] for s in out] == ['s:Mediterraneo','s:Ligure','s:Tirreno','s:Adriatico','s:Ionio','s:Egeo','s:MareDelNord','s:Baltico','s:Nero','s:Caspio','s:Atlantico']
+    assert {s['id'] for s in out if s['parent']=='s:Mediterraneo'} == {'s:Ligure','s:Tirreno','s:Adriatico','s:Ionio','s:Egeo'}
+
+@needs_marine
+def test_unmapped_seas_are_logged(marine_records, fit):
+    seen = []
+    b.build_seas(marine_records, fit, log=seen.append)
+    assert any('Sea of Marmara' in m for m in seen)
+    assert not any('Gulf of Bothnia' in m for m in seen)
