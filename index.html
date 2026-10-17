@@ -278,7 +278,8 @@
     m.ranges.forEach((r,i)=>{const n=nodes.ranges[i];const active=k==='zone';
       n.setAttribute('fill',active?status(r.id,'rgba(160,120,80,.45)',tint(i,55,55),'#D7D7D1',cnt):'none');n.setAttribute('stroke',active?'#7A5A3A':'none');
       n.style.cursor=active?'pointer':'default';n.style.pointerEvents=active?'':'none';});
-    m.rivers.forEach((r,i)=>{const n=nodes.rivers[i];const active=k==='river';
+    // rivers are hidden in the country decks: they only clutter the borders, especially on phones
+    m.rivers.forEach((r,i)=>{const n=nodes.rivers[i];const active=k==='river';n.style.display=k==='country'?'none':'';
       n.setAttribute('stroke',active?status(r.id,'#3F7FB5',tint(i,42,75),'#B0B0AA',cnt):'#8FB6D3');
       n.setAttribute('stroke-width',active?(S.placed[r.id]||S.checked?4.5:3):1.6);nodes.riverHits[i].style.display=active?'':'none';});
     // status() counts, so each target country's colour is computed once and reused for its marker
