@@ -3,6 +3,7 @@ import json
 import re
 
 import pytest
+import shapely
 from shapely.geometry import Polygon, LineString, MultiLineString
 import build_data as b
 from build_data import CACHE
@@ -26,6 +27,11 @@ def marine_records():
 @pytest.fixture(scope='module')
 def regions_records():
     return b.read_shp(b.fetch('regions', CACHE))
+
+
+@pytest.fixture(scope='module')
+def countries_records():
+    return b.read_shp(b.fetch('countries', CACHE))
 
 
 @pytest.fixture(scope='module')
@@ -183,8 +189,30 @@ def test_greenland_sea_is_atlantic(built):
 
 @needs_all
 def test_anchor_overrides_apply_to_known_targets(built):
-    for layer, table in (('rivers', b.RIVER_ANCHORS), ('seas', b.SEA_ANCHORS), ('ranges', b.RANGE_ANCHORS)):
+    for layer, table in (('rivers', b.RIVER_ANCHORS), ('seas', b.SEA_ANCHORS), ('ranges', b.RANGE_ANCHORS),
+                         ('countries', b.COUNTRY_ANCHORS)):
         by_id = {f['id']: f for f in built['eu'][layer]}
         for fid, (cx, cy) in table.items():
             assert fid in by_id and (by_id[fid]['cx'], by_id[fid]['cy']) == (cx, cy), fid
             assert 0 <= cx <= b.W and 0 <= cy <= b.H, fid
+
+@needs_all
+def test_roster_countries_all_present(built):
+    a3 = {c['a3'] for c in built['eu']['countries'] if c.get('target')}
+    assert a3 == set(b.COUNTRIES) and len(a3) == 46
+
+@needs_all
+def test_targets_are_exactly_the_roster(built):
+    for c in built['eu']['countries']:
+        assert bool(c.get('target')) == (c['a3'] in b.COUNTRIES)
+
+@needs_all
+def test_small_flag_marks_the_microstates(built):
+    small = {c['a3'] for c in built['eu']['countries'] if c.get('small')}
+    assert small == {'VAT', 'MCO', 'SMR', 'LIE', 'MLT', 'AND'}
+
+@needs_all
+def test_country_coverage_is_valid(countries_records, fit):
+    pairs = b.country_geoms(countries_records, fit)
+    assert shapely.coverage_is_valid([g for _, g in pairs])
+    assert all(not g.is_empty for rec, g in pairs if rec['adm0_a3'] in b.COUNTRIES)

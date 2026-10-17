@@ -323,6 +323,15 @@ RANGE_ANCHORS: dict[str, tuple[float, float]] = {
     'm:AlpiDinariche': (453.1, 475.0),
 }
 
+# The Stati deck: Natural Earth ADM0_A3 codes. Other countries stay background.
+COUNTRIES: frozenset[str] = frozenset('''
+    ALB AND AUT BLR BEL BIH BGR HRV CYP CZE DNK EST FIN FRA DEU GRC HUN ISL IRL ITA KOS LVA LIE
+    LTU LUX MLT MDA MCO MNE NLD MKD NOR POL PRT ROU RUS SMR SRB SVK SVN ESP SWE CHE UKR GBR VAT
+'''.split())
+SMALL_AREA = 12  # canvas units²; roster countries below this get a tap marker (the microstates)
+
+COUNTRY_ANCHORS: dict[str, tuple[float, float]] = {}
+
 
 def build_ranges(records: list[tuple[dict, BaseGeometry]], handdrawn: Path, fit: Fit) -> list[dict]:
     """Ranges from NE geography regions (`name`), or from the CC0 hand-drawn file when ne is None."""
@@ -366,22 +375,37 @@ def _country_id(name: str) -> str:
     return 'c:' + ''.join(c for c in plain.translate(_TRANSLIT) if c.isascii() and c.isalnum())
 
 
+def country_geoms(records: list[tuple[dict, BaseGeometry]], fit: Fit) -> list[tuple[dict, BaseGeometry]]:
+    """Countries on the canvas, simplified as one coverage so neighbours keep shared borders."""
+    pairs = [(rec, feature_to_canvas(g, fit, 0)) for rec, g in records if g.intersects(_PRECLIP_BOX)]
+    pairs = [(rec, c) for rec, c in pairs if not c.is_empty]  # inside PRECLIP but off the canvas
+    geoms = [c for _, c in pairs]
+    if not shapely.coverage_is_valid(geoms):
+        raise SystemExit('countries: invalid coverage before simplification')
+    geoms = shapely.coverage_simplify(geoms, BG_TOL_KM * 1000 * fit.scale, simplify_boundary=True)
+    if not shapely.coverage_is_valid(geoms):
+        raise SystemExit('countries: invalid coverage after simplification')
+    return [(rec, g) for (rec, _), g in zip(pairs, geoms)]
+
+
 def build_countries(records: list[tuple[dict, BaseGeometry]], fit: Fit) -> list[dict]:
-    """Countries intersecting the pre-clip box, simplified per country (borders not topology-shared)."""
+    """Countries on the canvas; roster ones are `target`, and the tiny ones among them `small`."""
     out = []
-    for rec, g in records:
-        if not g.intersects(_PRECLIP_BOX):
-            continue
-        c = feature_to_canvas(g, fit, BG_TOL_KM)
-        if c.is_empty:  # inside PRECLIP but off the canvas
-            continue
-        cx, cy = anchor(c)
+    for rec, c in country_geoms(records, fit):
+        fid, a3 = _country_id(rec['name_it']), rec['adm0_a3']
+        cx, cy = COUNTRY_ANCHORS.get(fid) or anchor(c)
         iso = rec['iso_a2'] if rec['iso_a2'] != '-99' else rec['iso_a2_eh']  # e.g. France, Norway
-        out.append({'id': _country_id(rec['name_it']), 'name': rec['name_it'], 'iso': iso,
-                    'd': to_path(c), 'cx': cx, 'cy': cy})
+        f = {'id': fid, 'name': rec['name_it'], 'iso': iso, 'a3': a3, 'd': to_path(c), 'cx': cx, 'cy': cy}
+        if a3 in COUNTRIES:
+            f['target'] = True
+            if c.area < SMALL_AREA:
+                f['small'] = True
+        out.append(f)
     ids = [c['id'] for c in out]
     if len(ids) != len(set(ids)):
         raise SystemExit(f'countries: duplicate ids {sorted({i for i in ids if ids.count(i) > 1})}')
+    if missing := COUNTRIES - {c['a3'] for c in out if c['d']}:
+        raise SystemExit(f'countries: roster codes not on the canvas {sorted(missing)}')
     return out
 
 
