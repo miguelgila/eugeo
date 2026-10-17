@@ -1,0 +1,6 @@
+.venv/
+tools/cache/
+__pycache__/
+.pytest_cache/
+.DS_Store
+.superpowers/
