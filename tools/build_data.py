@@ -31,7 +31,7 @@ MARGIN = 16
 WINDOW = (-25.0, 33.0, 70.0, 72.0)  # lon_min, lat_min, lon_max, lat_max
 # Padded lon/lat box clipped before projecting: geometry spanning the antimeridian or near the
 # EPSG:3035 antipode projects to garbage that can land on the canvas.
-PRECLIP = (-30.0, 30.0, 75.0, 75.0)  # lon_min, lat_min, lon_max, lat_max
+PRECLIP = (-70.0, 15.0, 100.0, 82.0)  # lon_min, lat_min, lon_max, lat_max
 
 CACHE = Path(__file__).resolve().parent / 'cache'
 HANDDRAWN = Path(__file__).resolve().parent / 'handdrawn.geojson'
@@ -307,12 +307,12 @@ def build_ranges(records: list[tuple[dict, BaseGeometry]], handdrawn: Path, fit:
 
 BG_TOL_KM = 4  # land, countries, lakes
 _WINDOW_BOX = box(*WINDOW)
+_PRECLIP_BOX = box(*PRECLIP)  # land and countries: everything drawn on the canvas
 
 
 def build_land(records: list[tuple[dict, BaseGeometry]], fit: Fit) -> list[dict]:
     """One land feature: the union of NE land polygons near the window."""
-    pad = box(*PRECLIP)
-    geom = unary_union([g for _, g in records if g.intersects(pad)])
+    geom = unary_union([g for _, g in records if g.intersects(_PRECLIP_BOX)])
     return [{'d': to_path(feature_to_canvas(geom, fit, BG_TOL_KM))}]
 
 
@@ -322,15 +322,17 @@ def _country_id(name: str) -> str:
 
 
 def build_countries(records: list[tuple[dict, BaseGeometry]], fit: Fit) -> list[dict]:
-    """Countries intersecting the window, simplified per country (borders not topology-shared)."""
+    """Countries intersecting the pre-clip box, simplified per country (borders not topology-shared)."""
     out = []
     for rec, g in records:
-        if not g.intersects(_WINDOW_BOX):
+        if not g.intersects(_PRECLIP_BOX):
             continue
-        f = _feature(_country_id(rec['name_it']), rec['name_it'], g, fit, BG_TOL_KM)
-        if f['d']:
-            out.append({'id': f['id'], 'name': f['name'], 'iso': rec['iso_a2'],
-                        'd': f['d'], 'cx': f['cx'], 'cy': f['cy']})
+        c = feature_to_canvas(g, fit, BG_TOL_KM)
+        if c.is_empty:  # inside PRECLIP but off the canvas
+            continue
+        cx, cy = anchor(c)
+        out.append({'id': _country_id(rec['name_it']), 'name': rec['name_it'], 'iso': rec['iso_a2'],
+                    'd': to_path(c), 'cx': cx, 'cy': cy})
     return out
 
 
