@@ -1,4 +1,7 @@
 # tools/test_build_data.py
+import json
+import re
+
 import pytest
 from shapely.geometry import Polygon, LineString, MultiLineString
 import build_data as b
@@ -23,6 +26,11 @@ def marine_records():
 @pytest.fixture(scope='module')
 def regions_records():
     return b.read_shp(b.fetch('regions', CACHE))
+
+
+@pytest.fixture(scope='module')
+def built():
+    return b.build(CACHE)
 
 
 def test_to_path_polygon_with_hole():
@@ -93,7 +101,6 @@ def test_ranges_cover_spec_list(regions_records, fit):
     assert [r['id'] for r in out] == [r[0] for r in b.RANGES]
 
 def test_handdrawn_is_sane():
-    import json
     gj = json.loads(b.HANDDRAWN.read_text())
     ids = {f['properties']['id'] for f in gj['features']}
     assert ids == {'m:Appennino','m:CordiglieraCantabrica'}
@@ -104,3 +111,47 @@ def test_handdrawn_is_sane():
 def test_sierra_nevada_is_the_spanish_one(regions_records, fit):
     sn = next(r for r in b.build_ranges(regions_records, b.HANDDRAWN, fit) if r['id']=='m:SierraNevada')
     assert sn['cx'] < b.W * 0.3
+
+def test_preclip_tames_global_band(fit):
+    band = Polygon([(-180,60),(180,60),(180,70),(-180,70)]).segmentize(1.0)
+    g = b.feature_to_canvas(band, fit, 4)
+    x0, y0, x1, y1 = g.bounds
+    win_w = (fit.bbox[2] - fit.bbox[0]) * fit.scale
+    assert not g.is_empty and x1 - x0 <= win_w + 0.5
+    assert 0 <= x0 and x1 <= b.W and 0 <= y0 and y1 <= b.H
+
+def test_preclip_drops_far_geometry(fit):
+    asia = Polygon([(100,40),(120,40),(120,70),(100,70)]).segmentize(1.0)
+    # contains the EPSG:3035 antipode (-170, -52): projects inside-out over the whole window
+    antipode = Polygon([(-175,-60),(-165,-60),(-165,-45),(-175,-45)]).segmentize(1.0)
+    for far in (asia, antipode):
+        assert b.feature_to_canvas(far, fit, 4).is_empty
+
+def test_country_id_strips_accents_and_spaces():
+    assert b._country_id("Città del Vaticano") == 'c:CittadelVaticano'
+    assert b._country_id("Costa d'Avorio") == 'c:CostadAvorio'
+
+needs_all = pytest.mark.skipif(not all((CACHE/b._ne_name(n)).exists() for n in b.DATASETS), reason='no cache')
+
+@needs_all
+def test_all_targets_inside_canvas(built):
+    for layer in ('rivers','seas','ranges'):
+        for f in built['eu'][layer]:
+            xs = [float(v) for v in re.findall(r'[ML](-?\d+\.\d)', f['d'])]
+            ys = [float(v) for v in re.findall(r' (-?\d+\.\d)', f['d'])]
+            assert min(xs) >= 0 and max(xs) <= b.W and min(ys) >= 0 and max(ys) <= b.H, f['id']
+            # not clipped: the Urals and Caspian must not touch the right edge
+    for fid in ('m:MontiUrali','s:Caspio'):
+        f = next(x for layer in ('ranges','seas') for x in built['eu'][layer] if x['id']==fid)
+        assert max(float(v) for v in re.findall(r'[ML](-?\d+\.\d)', f['d'])) < b.W - b.MARGIN + 0.5
+
+@needs_all
+def test_data_js_is_parseable(tmp_path, built):
+    out = tmp_path/'data.js'; b.write_data_js(built, out)
+    txt = out.read_text(); assert txt.startswith('// GENERATED')
+    body = txt.split('window.GEO = ',1)[1].rstrip().rstrip(';')
+    d = json.loads(body); assert set(d['eu']) == {'w','h','version','land','countries','lakes','rivers','seas','ranges','cities'}
+
+@needs_all
+def test_size_budget(tmp_path, built):
+    out = tmp_path/'data.js'; b.write_data_js(built, out); assert out.stat().st_size < 600_000
