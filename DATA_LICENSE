@@ -6,7 +6,7 @@ tools/build_data.py from the sources below. It is not covered by the MIT
 license in LICENSE.
 
 1. Natural Earth (window.GEO.eu: land, countries, lakes, rivers, seas,
-   and every mountain range except the two listed in section 2)
+   cities, and every mountain range except the two listed in section 2)
    Derived from Natural Earth 1:10m vector data:
      - ne_10m_land                       5.1.1
      - ne_10m_admin_0_countries          5.1.1
@@ -14,8 +14,7 @@ license in LICENSE.
      - ne_10m_geography_marine_polys     5.1.0
      - ne_10m_geography_regions_polys    5.0.0
      - ne_10m_lakes                      5.0.0
-   The pipeline also downloads ne_10m_populated_places_simple 5.1.2,
-   but nothing from it is emitted yet (cities is empty).
+     - ne_10m_populated_places_simple    5.1.2  (capitals)
 
    The versions used for each build are recorded in the header of
    data.js and in window.GEO.eu.version.ne, read from each dataset's
