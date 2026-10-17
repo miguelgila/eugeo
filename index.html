@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Geografia europea</title>
+<meta name="description" id="metaDesc" content="Quiz di geografia: fiumi, mari e catene montuose d'Europa.">
+<meta name="theme-color" content="#1F5FA8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Geografia EU">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#F6F6F3;--ink:#1C1C1A;--muted:#5C5C57;--line:#E2E2DD;--btn:#CFCFC9;--accent:#1F5FA8;--ok:#1F8A4C;--bad:#C8321E;--none:#D7D7D1}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Manrope',system-ui,sans-serif}
+  button{font-family:inherit;cursor:pointer}
+  .wrap{max-width:1400px;margin:0 auto;padding:16px 16px 32px;display:flex;flex-direction:column;gap:16px}
+  header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand .mark{width:40px;height:40px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.01em}
+  .sub{margin:2px 0 0;font-size:14px;color:var(--muted)}
+  .seg{display:flex;flex-wrap:wrap;gap:6px;padding:4px;background:#ECECE8;border-radius:12px}
+  .seg button{min-height:40px;padding:0 14px;border:none;border-radius:9px;background:transparent;color:var(--muted);font-size:14px;font-weight:700}
+  .seg button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .hnav{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .lang{min-height:48px;padding:0 10px;border:none;border-radius:12px;background:#ECECE8;color:var(--ink);font-family:inherit;font-size:14px;font-weight:700}
+  .row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px}
+  .tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  .tools .progress{font-size:14px;color:var(--muted);padding:0 6px}
+  .btn{min-height:44px;padding:0 16px;border:1.5px solid var(--btn);border-radius:10px;background:#fff;font-size:14px;font-weight:600;color:var(--ink)}
+  .btn:hover{background:#ECECE8}
+  .btn.primary{border:none;background:var(--accent);color:#fff;font-weight:700;padding:0 20px}
+  .btn.primary:hover{background:#184C87}
+  .btn.icon{width:44px;padding:0;font-size:20px;font-weight:700}
+  .result{display:none;flex-wrap:wrap;gap:12px 24px;align-items:center;padding:14px 18px;border-radius:12px;background:#fff;border:1.5px solid var(--line)}
+  .result.show{display:flex}
+  .result .score{font-size:20px;font-weight:800}
+  .legend{display:flex;gap:16px;font-size:14px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .main{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+  .panel{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:14px}
+  .mapPanel{flex:999 1 520px;min-width:0}
+  .mapPanel.portrait{flex:1 1 380px;max-width:560px}
+  .mapHead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+  .mapHead p{margin:0;font-size:13px;color:var(--muted);flex:1 1 200px}
+  .zoom{display:flex;gap:6px}
+  .mapBox{position:relative;width:100%;overflow:hidden;border-radius:10px;background:var(--bg);user-select:none;-webkit-user-select:none;touch-action:pan-y}
+  .mapBox.zoomed{touch-action:none}
+  .mapBox svg{width:100%;height:100%;display:block}
+  .land{fill:#EDEDE8;pointer-events:none}
+  .country{fill:none;stroke:#C9C9C2;stroke-width:.8;stroke-linejoin:round;pointer-events:none}
+  .lake{fill:#BFD7EA;stroke:#fff;stroke-width:1;stroke-linejoin:round;pointer-events:none}
+  .sea{cursor:pointer;stroke:#fff;stroke-width:1;stroke-linejoin:round;transition:fill .15s}
+  .range{cursor:pointer;stroke-width:1.2;stroke-dasharray:4 3;stroke-linejoin:round;transition:fill .15s}
+  .sea:hover,.range:hover{filter:brightness(.93)}
+  .river{fill:none;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+  .hit{cursor:pointer}
+  .riverHit{fill:none;stroke:rgba(0,0,0,0);stroke-width:16;pointer-events:stroke;cursor:pointer}
+  .pin{stroke:#fff;stroke-width:2.5;pointer-events:none}
+  .pinHit{fill:transparent;cursor:pointer}
+  .chip{position:absolute;transform:translate(-50%,-50%);padding:3px 8px;border-radius:999px;border:1.5px solid var(--bad);background:#fff;color:var(--bad);font-size:11px;font-weight:700;line-height:1.2;white-space:nowrap;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+  .chip.up{transform:translate(-50%,-170%)}
+  .chip.name{border-color:var(--btn);color:var(--ink);background:rgba(255,255,255,.92);font-size:10px;padding:2px 6px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+  .chip:not(.name){z-index:1}
+  .tray{flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:12px}
+  .tray h2{margin:0;font-size:16px;font-weight:800}
+  .tray .count{font-size:13px;color:var(--muted)}
+  .tray .help{margin:0;font-size:13px;color:var(--muted)}
+  .cards{display:flex;flex-wrap:wrap;gap:8px}
+  .card{min-height:44px;padding:0 14px;border-radius:10px;border:1.5px solid var(--btn);background:#fff;color:var(--ink);font-size:14px;font-weight:600}
+  .card:hover{border-color:var(--ink)}
+  .card[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:#fff}
+  .errors{display:none;flex-direction:column;gap:6px}
+  .errors.show{display:flex}
+  .errors h3{margin:4px 0 0;font-size:14px;font-weight:800;color:var(--bad)}
+  .errors div{font-size:14px;padding:8px 10px;border-radius:8px;background:#FBF1EF;border:1px solid #F0D4CF}
+  .empty{display:none;margin:0;font-size:14px;color:var(--muted);padding:12px 0}
+  .empty.show{display:block}
+  footer{font-size:12px;color:var(--muted);text-align:center;padding-top:8px}
+  footer a{color:inherit}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="mark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 7.4L22 12l-7.4 2.6L12 22l-2.6-7.4L2 12l7.4-2.6z" fill="#fff"/></svg></div>
+      <div><h1 id="title">Geografia europea</h1><p class="sub" id="subtitle"></p></div>
+    </div>
+    <div class="hnav">
+      <nav class="seg" id="mapNav" data-i18n-aria="mapsAria" aria-label="Mappe"></nav>
+      <select class="lang" id="langSel" data-i18n-aria="langAria" aria-label="Lingua"></select>
+    </div>
+  </header>
+
+  <div class="row">
+    <div class="seg" id="modeNav" role="group" data-i18n-aria="modesAria" aria-label="Tipo di carte"></div>
+    <div class="tools">
+      <div class="progress" id="progress"></div>
+      <button class="btn" id="namesBtn" type="button" data-i18n="namesShow">Mostra nomi</button>
+      <button class="btn" id="resetBtn" type="button" data-i18n="reset">Ricomincia</button>
+      <button class="btn primary" id="checkBtn" type="button" data-i18n="check">Verifica</button>
+    </div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="score" id="score"></div>
+    <div class="legend"><span><i style="background:var(--ok)"></i><b data-i18n="ok" style="font-weight:inherit">Giusto</b></span><span><i style="background:var(--bad)"></i><b data-i18n="bad" style="font-weight:inherit">Sbagliato</b></span><span><i style="background:var(--none)"></i><b data-i18n="none" style="font-weight:inherit">Non piazzato</b></span></div>
+    <div id="checkHint" style="font-size:14px;color:var(--muted)"></div>
+  </div>
+
+  <div class="main">
+    <section class="panel mapPanel" id="mapPanel" data-i18n-aria="mapAria" aria-label="Mappa">
+      <div class="mapHead">
+        <p id="mapHelp"></p>
+        <div class="zoom" role="group" data-i18n-aria="zoomAria" aria-label="Zoom">
+          <button class="btn icon" id="zoomOut" type="button" data-i18n-aria="zoomOut" aria-label="Riduci">−</button>
+          <button class="btn icon" id="zoomIn" type="button" data-i18n-aria="zoomIn" aria-label="Ingrandisci">+</button>
+          <button class="btn" id="zoomReset" type="button" data-i18n="zoom">Zoom</button>
+        </div>
+      </div>
+      <div class="mapBox" id="mapBox">
+        <svg id="svg" role="img" data-i18n-aria="mapAria" aria-label="Mappa"></svg>
+        <div id="chips"></div>
+      </div>
+    </section>
+
+    <aside class="panel tray" data-i18n-aria="trayAria" aria-label="Carte">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 id="trayTitle"></h2><span class="count" id="trayCount"></span></div>
+      <p class="help" id="trayHelp"></p>
+      <div class="errors" id="errors"></div>
+      <p class="empty" id="empty" data-i18n="empty">Tutte le carte sono sulla mappa. Premi "Verifica" per vedere com'è andata.</p>
+      <div class="cards" id="cards"></div>
+    </aside>
+  </div>
+  <footer><span data-i18n="footData">Dati geografici:</span> <a href="https://www.naturalearthdata.com/" data-i18n="naturalEarth">Natural Earth (pubblico dominio)</a>. <a href="https://github.com/miguelgila/eugeo" data-i18n="code">Codice</a> (MIT)<br><span data-i18n="coffeeQ">Ti è utile?</span> <a href="https://ko-fi.com/miguelgila" rel="noopener" data-i18n="coffee">Offrimi un caffè ☕</a></footer>
+</div>
+
+<script src="i18n.js"></script>
+<script src="data.js"></script>
+<script>
+(function(){
+  const G=window.GEO; const SVGNS='http://www.w3.org/2000/svg';
+  const HUES=[18,48,92,160,200,232,278,328];
+  const tint=(i,l,sat)=>'hsl('+HUES[i%HUES.length]+', '+sat+'%, '+l+'%)';
+  const shuffle=a=>{const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;};
+  const el=id=>document.getElementById(id);
+
+  // ---------- i18n ----------
+  const I=window.I18N;let L='it';
+  const t=(k,...a)=>{const u=I.ui[L]||{};const s=u[k]!=null?u[k]:(I.ui.it[k]!=null?I.ui.it[k]:k);return s.replace(/\{(\d)\}/g,(m,i)=>a[i]);};
+  const pn=(id,fallback)=>(I.places[id]&&I.places[id][L])||fallback;
+  const mt=k=>t('mode.'+S.mode+'.'+k);
+
+  // ---------- maps & modes ----------
+  const EU=G.eu;
+  const MAPS={
+    eu:{w:EU.w,h:EU.h,portrait:false,
+      land:EU.land, countries:EU.countries, lakes:EU.lakes, rivers:EU.rivers, seas:EU.seas, ranges:EU.ranges, pins:[],
+      modes:[
+        {id:'rivers',kind:'river',targets:()=>EU.rivers.map(r=>({id:r.id,name:pn(r.id,r.name),cx:r.cx,cy:r.cy}))},
+        {id:'seas',kind:'sea',targets:()=>EU.seas.map(s=>({id:s.id,name:pn(s.id,s.name),cx:s.cx,cy:s.cy}))},
+        {id:'ranges',kind:'zone',targets:()=>EU.ranges.map(r=>({id:r.id,name:pn(r.id,r.name),cx:r.cx,cy:r.cy}))}
+      ]}
+  };
+
+  // ---------- state ----------
+  const S={map:'eu',mode:'rivers',order:[],selected:null,placed:{},checked:false,names:false,view:{z:1,cx:0,cy:0}};
+  const map=()=>MAPS[S.map];
+  const mode=()=>map().modes.find(m=>m.id===S.mode);
+  let T=[], byId={};
+  function names(){T=mode().targets();byId={};T.forEach(t=>byId[t.id]=t);}
+  function fresh(){names();S.order=shuffle(T.map(t=>t.id));S.selected=null;S.placed={};S.checked=false;S.names=false;}
+  function setMap(id){S.map=id;S.mode=map().modes[0].id;S.view={z:1,cx:map().w/2,cy:map().h/2};fresh();buildSvg();render();applyView();try{localStorage.setItem('eugeo.map',id);}catch(e){}}
+  function setMode(id){S.mode=id;fresh();render();}
+  function setLang(l){L=l;document.documentElement.lang=l;el('metaDesc').content=t('description');
+    document.querySelectorAll('[data-i18n]').forEach(n=>n.textContent=t(n.dataset.i18n));
+    document.querySelectorAll('[data-i18n-aria]').forEach(n=>n.setAttribute('aria-label',t(n.dataset.i18nAria)));
+    el('langSel').value=l;names();render();applyView();try{localStorage.setItem('eugeo.lang',l);}catch(e){}}
+
+  // ---------- zoom & pan ----------
+  const box=el('mapBox'), svg=el('svg');
+  const W=()=>map().w, H=()=>map().h;
+  function clampView(v){const z=Math.min(Math.max(v.z,1),8);const vw=W()/z,vh=H()/z;return {z,cx:Math.min(Math.max(v.cx,vw/2),W()-vw/2),cy:Math.min(Math.max(v.cy,vh/2),H()-vh/2)};}
+  function zoomAt(f,mx,my){const v=S.view;const z=Math.min(Math.max(v.z*f,1),8);const r=v.z/z;
+    S.view=clampView({z,cx:mx===undefined?v.cx:mx+(v.cx-mx)*r,cy:my===undefined?v.cy:my+(v.cy-my)*r});applyView();}
+  function applyView(){const v=S.view;const vw=W()/v.z,vh=H()/v.z;const vx=v.cx-vw/2,vy=v.cy-vh/2;
+    svg.setAttribute('viewBox',vx.toFixed(1)+' '+vy.toFixed(1)+' '+vw.toFixed(1)+' '+vh.toFixed(1));
+    box.classList.toggle('zoomed',v.z>1);el('zoomReset').textContent=v.z>1.01?Math.round(v.z*100)+'%':t('zoom');
+    // tap areas sized in screen px (map units per px = u), so thin rivers and small pins stay finger-sized at any zoom
+    const u=vw/(box.clientWidth||vw);nodes.riverHits.forEach(n=>n.style.strokeWidth=Math.max(16,30*u));nodes.pinHits.forEach(n=>n.setAttribute('r',Math.max(11,18*u)));
+    renderChips();}
+  window.addEventListener('resize',applyView);
+  const ptrs={};let moved=0,dragged=false;
+  box.addEventListener('pointerdown',e=>{ptrs[e.pointerId]={x:e.clientX,y:e.clientY};moved=0;});
+  box.addEventListener('pointermove',e=>{const p=ptrs[e.pointerId];if(!p)return;const ids=Object.keys(ptrs);const v=S.view;
+    const rect=box.getBoundingClientRect();const unit=(W()/v.z)/rect.width;const vx=v.cx-W()/(2*v.z),vy=v.cy-H()/(2*v.z);
+    if(ids.length===1){const dx=e.clientX-p.x,dy=e.clientY-p.y;moved+=Math.abs(dx)+Math.abs(dy);p.x=e.clientX;p.y=e.clientY;
+      if(v.z>1){S.view=clampView({z:v.z,cx:v.cx-dx*unit,cy:v.cy-dy*unit});applyView();}}
+    else{const a=ptrs[ids[0]],b=ptrs[ids[1]];const d0=Math.hypot(a.x-b.x,a.y-b.y)||1;p.x=e.clientX;p.y=e.clientY;const d1=Math.hypot(a.x-b.x,a.y-b.y)||1;moved+=20;
+      zoomAt(d1/d0,vx+((a.x+b.x)/2-rect.left)*unit,vy+((a.y+b.y)/2-rect.top)*unit);}});
+  const up=e=>{delete ptrs[e.pointerId];if(moved>8){dragged=true;setTimeout(()=>{dragged=false;},50);}};
+  ['pointerup','pointercancel','pointerleave'].forEach(t=>box.addEventListener(t,up));
+  box.addEventListener('wheel',e=>{if(!e.ctrlKey&&S.view.z===1)return;e.preventDefault();const rect=box.getBoundingClientRect();const v=S.view;const unit=(W()/v.z)/rect.width;
+    zoomAt(e.deltaY<0?1.2:1/1.2,v.cx-W()/(2*v.z)+(e.clientX-rect.left)*unit,v.cy-H()/(2*v.z)+(e.clientY-rect.top)*unit);},{passive:false});
+  el('zoomIn').onclick=()=>zoomAt(1.6);el('zoomOut').onclick=()=>zoomAt(1/1.6);el('zoomReset').onclick=()=>{S.view={z:1,cx:W()/2,cy:H()/2};applyView();};
+
+  // ---------- game actions ----------
+  function pickTarget(id){if(S.checked||dragged||!byId[id])return;
+    if(S.selected){S.placed[id]=S.selected;S.selected=null;}
+    else if(S.placed[id]){delete S.placed[id];}
+    render();}
+  function pickCard(id){S.selected=S.selected===id?null:id;render();}
+  el('resetBtn').onclick=()=>{fresh();render();};
+  el('checkBtn').onclick=()=>{S.checked=true;S.selected=null;render();};
+  el('namesBtn').onclick=()=>{S.names=!S.names;render();};
+
+  // ---------- SVG build (once per map) ----------
+  const nodes={land:[],countries:[],lakes:[],seas:[],ranges:[],rivers:[],riverHits:[],pins:[],pinHits:[]};
+  function mk(tag,attrs,cls){const n=document.createElementNS(SVGNS,tag);for(const k in attrs)n.setAttribute(k,attrs[k]);if(cls)n.setAttribute('class',cls);return n;}
+  function buildSvg(){svg.innerHTML='';for(const k in nodes)nodes[k]=[];const m=map();
+    box.style.aspectRatio=m.w+' / '+m.h;el('mapPanel').classList.toggle('portrait',m.portrait);
+    // untargeted water (Marmara, Barents, White Sea) is simply this background
+    svg.appendChild(mk('rect',{x:0,y:0,width:m.w,height:m.h,fill:'#DCEAF5'}));
+    m.land.forEach(l=>{const n=mk('path',{d:l.d},'land');svg.appendChild(n);nodes.land.push(n);});
+    m.countries.forEach(c=>{const n=mk('path',{d:c.d},'country');svg.appendChild(n);nodes.countries.push(n);});
+    m.lakes.forEach(l=>{const n=mk('path',{d:l.d},'lake');svg.appendChild(n);nodes.lakes.push(n);});
+    m.seas.forEach(s=>{const n=mk('path',{d:s.d},'sea');n.onclick=()=>pickTarget(s.id);svg.appendChild(n);nodes.seas.push(n);});
+    m.ranges.forEach(r=>{const n=mk('path',{d:r.d},'range');n.onclick=()=>pickTarget(r.id);svg.appendChild(n);nodes.ranges.push(n);});
+    m.rivers.forEach(r=>{const n=mk('path',{d:r.d},'river');svg.appendChild(n);nodes.rivers.push(n);});
+    m.rivers.forEach(r=>{const n=mk('path',{d:r.d},'riverHit');n.onclick=()=>pickTarget(r.id);svg.appendChild(n);nodes.riverHits.push(n);});
+    m.pins.forEach(p=>{const n=mk('circle',{cx:p.cx,cy:p.cy,r:11},'pin');svg.appendChild(n);nodes.pins.push(n);});
+    m.pins.forEach(p=>{const n=mk('circle',{cx:p.cx,cy:p.cy,r:11},'pinHit');n.onclick=()=>pickTarget(p.id);svg.appendChild(n);nodes.pinHits.push(n);});}
+
+  // ---------- render ----------
+  function status(id,idle,done,none,counter){const card=S.placed[id];
+    if(S.checked){if(card){if(card===id){counter.ok++;return 'var(--ok)';}return 'var(--bad)';}return none;}
+    return card?done:idle;}
+  // after Verifica: red chips with the right name over wrong placements; with S.names: a neutral label on every target
+  function renderChips(){const c=el('chips');c.innerHTML='';if(!S.checked&&!S.names)return;const v=S.view;const vw=W()/v.z,vh=H()/v.z;const vx=v.cx-vw/2,vy=v.cy-vh/2;
+    T.forEach(t=>{const wrong=S.checked&&S.placed[t.id]&&S.placed[t.id]!==t.id;if(!wrong&&!S.names)return;
+      const s=document.createElement('span');s.className='chip'+(wrong?'':' name')+(mode().kind==='pin'?' up':'');s.textContent=t.name;
+      s.style.left=((t.cx-vx)/vw*100).toFixed(2)+'%';s.style.top=((t.cy-vy)/vh*100).toFixed(2)+'%';c.appendChild(s);});}
+  function render(){const m=map(),M=mode(),k=M.kind;const cnt={ok:0};
+    document.title=t('map.'+S.map+'.title');el('title').textContent=document.title;el('subtitle').textContent=mt('subtitle');
+    const nav=el('mapNav');nav.innerHTML='';Object.keys(MAPS).forEach(id=>{const b=document.createElement('button');b.type='button';b.textContent=t('map.'+id);b.setAttribute('aria-pressed',id===S.map);b.onclick=()=>setMap(id);nav.appendChild(b);});
+    const mn=el('modeNav');mn.innerHTML='';m.modes.forEach(md=>{const b=document.createElement('button');b.type='button';b.textContent=t('mode.'+md.id+'.label');b.setAttribute('aria-pressed',md.id===S.mode);b.onclick=()=>setMode(md.id);mn.appendChild(b);});
+    el('namesBtn').textContent=t(S.names?'namesHide':'namesShow');el('namesBtn').setAttribute('aria-pressed',S.names);
+    // map colours
+    // a sub-sea with no card of its own shows its parent's placement (Mediterraneo covers its inner seas); only the parent's own status() counts
+    const idx=id=>m.seas.findIndex(x=>x.id===id);
+    function seaStatus(s,i){if(S.placed[s.id]||!s.parent||!S.placed[s.parent])return status(s.id,'#9CC3E0',tint(i,48,70),'#D7D7D1',cnt);
+      const card=S.placed[s.parent];return S.checked?(card===s.parent?'var(--ok)':'var(--bad)'):tint(idx(s.parent),48,70);}
+    m.seas.forEach((s,i)=>{const n=nodes.seas[i];const active=k==='sea';
+      n.setAttribute('fill',active?seaStatus(s,i):'#BFD7EA');n.style.cursor=active?'pointer':'default';n.style.pointerEvents=active?'':'none';});
+    m.ranges.forEach((r,i)=>{const n=nodes.ranges[i];const active=k==='zone';
+      n.setAttribute('fill',active?status(r.id,'rgba(160,120,80,.45)',tint(i,55,55),'#D7D7D1',cnt):'none');n.setAttribute('stroke',active?'#7A5A3A':'none');
+      n.style.cursor=active?'pointer':'default';n.style.pointerEvents=active?'':'none';});
+    m.rivers.forEach((r,i)=>{const n=nodes.rivers[i];const active=k==='river';
+      n.setAttribute('stroke',active?status(r.id,'#3F7FB5',tint(i,42,75),'#B0B0AA',cnt):'#8FB6D3');
+      n.setAttribute('stroke-width',active?(S.placed[r.id]||S.checked?4.5:3):1.6);nodes.riverHits[i].style.display=active?'':'none';});
+    m.pins.forEach((p,i)=>{const n=nodes.pins[i];n.style.display=nodes.pinHits[i].style.display=k==='pin'?'':'none';if(k==='pin')n.setAttribute('fill',status(p.id,'#6B6B66',tint(i,45,70),'#D7D7D1',cnt));});
+    // cards
+    const placedCards=new Set(Object.values(S.placed));const cards=el('cards');cards.innerHTML='';
+    const left=S.order.filter(a=>!placedCards.has(a));
+    left.forEach(a=>{const b=document.createElement('button');b.type='button';b.className='card';
+      b.textContent=byId[a].name;b.setAttribute('aria-pressed',S.selected===a);b.onclick=()=>pickCard(a);cards.appendChild(b);});
+    el('trayTitle').textContent=mt('tray');el('trayHelp').textContent=mt('help');el('trayCount').textContent=t('left',left.length);
+    el('empty').classList.toggle('show',left.length===0&&!S.checked);
+    el('progress').textContent=t('progress',Object.keys(S.placed).length,T.length);
+    // results
+    el('result').classList.toggle('show',S.checked);
+    const wrong=S.checked?T.filter(t=>S.placed[t.id]&&S.placed[t.id]!==t.id):[];
+    if(S.checked){el('score').textContent=t('score',cnt.ok,T.length);
+      el('checkHint').textContent=t(cnt.ok===T.length?'perfect':'retry');}
+    const er=el('errors');er.innerHTML='';er.classList.toggle('show',wrong.length>0);
+    if(wrong.length){const h=document.createElement('h3');h.textContent=t('review');er.appendChild(h);
+      wrong.forEach(x=>{const d=document.createElement('div');d.innerHTML=esc(t('wrong','\u0000'+byId[S.placed[x.id]].name+'\u0001','\u0000'+x.name+'\u0001')).replace(/\u0000/g,'<b>').replace(/\u0001/g,'</b>');er.appendChild(d);});}
+    el('mapHelp').textContent=S.checked?t('helpChecked'):(S.selected?t('helpSelected',mt('what'),byId[S.selected].name):t('helpIdle',mt('what')));
+    renderChips();}
+  const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+  // language: ?lang= > saved choice > Italian (deliberately not the browser language)
+  const codes=I.langs.map(x=>x[0]);let lang=new URLSearchParams(location.search).get('lang');
+  if(!codes.includes(lang)){try{lang=localStorage.getItem('eugeo.lang');}catch(e){}}
+  if(!codes.includes(lang))lang='it';
+  I.langs.forEach(([c,n])=>{const o=document.createElement('option');o.value=c;o.textContent=n;el('langSel').appendChild(o);});
+  el('langSel').onchange=e=>setLang(e.target.value);
+  L=lang;
+  el('langSel').style.display=I.langs.length>1?'':'none';
+  el('mapNav').style.display=Object.keys(MAPS).length>1?'':'none';
+  let start='eu';try{start=localStorage.getItem('eugeo.map')||'eu';}catch(e){}
+  setMap(MAPS[start]?start:'eu');setLang(lang);
+})();
+</script>
+</body>
+</html>
