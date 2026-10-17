@@ -75,6 +75,15 @@ def test_unmapped_seas_are_logged(marine_records, fit):
     b.build_seas(marine_records, fit, log=seen.append)
     assert any('Sea of Marmara' in m for m in seen)
     assert not any('Gulf of Bothnia' in m for m in seen)
+    for merged in ('Golfe du Lion', 'Waddenzee', 'Mecklenburger Bucht'):
+        assert not any(merged in m for m in seen)
+
+@needs_marine
+def test_no_unnamed_baltic_polygon_left(marine_records, fit):
+    seen = []
+    b.build_seas(marine_records, fit, log=seen.append)
+    pts = [tuple(map(float, m.split('(')[1].rstrip(')').split(','))) for m in seen if '<unnamed>' in m]
+    assert not [(x, y) for x, y in pts if 9 <= x <= 30 and 53 <= y <= 66]
 
 needs_regions = pytest.mark.skipif(not (CACHE/'ne_10m_geography_regions_polys').exists(), reason='no cache')
 

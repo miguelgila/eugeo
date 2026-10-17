@@ -9,7 +9,7 @@ import shapefile
 import shapely
 from pyproj import Transformer
 from shapely.geometry import (GeometryCollection, LineString, MultiLineString,
-                              MultiPolygon, Polygon, shape)
+                              MultiPolygon, Point, Polygon, shape)
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
@@ -198,18 +198,22 @@ def build_rivers(records: list[tuple[dict, BaseGeometry]], fit: Fit) -> list[dic
 
 
 _MED = 's:Mediterraneo'
+# `ne`: NE `name` values to merge; optional `points`: lon/lat points, each merging
+# every (possibly unnamed) polygon that contains it.
 SEAS: list[dict] = [
     {'id': 's:Mediterraneo', 'name': 'Mar Mediterraneo', 'parent': None,
-     'ne': ['Mediterranean Sea', 'Balearic Sea', 'Alboran Sea']},
+     'ne': ['Mediterranean Sea', 'Balearic Sea', 'Alboran Sea', 'Golfe du Lion', 'Strait of Gibraltar']},
     {'id': 's:Ligure', 'name': 'Mar Ligure', 'parent': _MED, 'ne': ['Ligurian Sea']},
     {'id': 's:Tirreno', 'name': 'Mar Tirreno', 'parent': _MED, 'ne': ['Tyrrhenian Sea']},
     {'id': 's:Adriatico', 'name': 'Mar Adriatico', 'parent': _MED, 'ne': ['Adriatic Sea']},
     {'id': 's:Ionio', 'name': 'Mar Ionio', 'parent': _MED, 'ne': ['Ionian Sea']},
     {'id': 's:Egeo', 'name': 'Mar Egeo', 'parent': _MED, 'ne': ['Aegean Sea', 'Sea of Crete']},
     {'id': 's:MareDelNord', 'name': 'Mare del Nord', 'parent': None,
-     'ne': ['North Sea', 'Skagerrak', 'Kattegat']},
+     'ne': ['North Sea', 'Skagerrak', 'Kattegat', 'Waddenzee']},
     {'id': 's:Baltico', 'name': 'Mar Baltico', 'parent': None,
-     'ne': ['Baltic Sea', 'Gulf of Bothnia', 'Gulf of Finland', 'Gulf of Riga']},
+     'ne': ['Baltic Sea', 'Gulf of Bothnia', 'Gulf of Finland', 'Gulf of Riga',
+            'Øresund', 'Mecklenburger Bucht', 'Stettiner Haff'],
+     'points': [(10.9, 55.3)]},  # Great Belt: the Danish Belts polygon has no NE name
     {'id': 's:Nero', 'name': 'Mar Nero', 'parent': None, 'ne': ['Black Sea', 'Sea of Azov']},
     {'id': 's:Caspio', 'name': 'Mar Caspio', 'parent': None, 'ne': ['Caspian Sea']},
     {'id': 's:Atlantico', 'name': 'Oceano Atlantico', 'parent': None,
@@ -223,7 +227,9 @@ SEAS: list[dict] = [
 def build_seas(records: list[tuple[dict, BaseGeometry]], fit: Fit, log=print) -> list[dict]:
     by_name: dict[str, list[BaseGeometry]] = {}
     for rec, g in records:
-        by_name.setdefault(rec['name'] or '', []).append(g)
+        if rec['name']:
+            by_name.setdefault(rec['name'], []).append(g)
+    used: set[int] = set()  # ids of unnamed records merged via `points`
     out = []
     for sea in SEAS:
         for n in sea['ne']:
@@ -231,12 +237,24 @@ def build_seas(records: list[tuple[dict, BaseGeometry]], fit: Fit, log=print) ->
                 word = n.split()[0]
                 raise SystemExit(f'sea {sea["id"]}: no marine polygon named {n!r}; '
                                  f'candidates: {sorted(k for k in by_name if word in k)}')
-        geom = unary_union([g for n in sea['ne'] for g in by_name[n]])
+        parts = [g for n in sea['ne'] for g in by_name[n]]
+        for lon, lat in sea.get('points', []):
+            hits = [(i, g) for i, (_, g) in enumerate(records) if g.contains(Point(lon, lat))]
+            if not hits:
+                raise SystemExit(f'sea {sea["id"]}: no marine polygon contains {(lon, lat)}')
+            used.update(i for i, _ in hits)
+            parts += [g for _, g in hits]
+        geom = unary_union(parts)
         out.append({**_feature(sea['id'], sea['name'], geom, fit, 5), 'parent': sea['parent']})
     mapped = {n for sea in SEAS for n in sea['ne']}
+    in_window = lambda g: not fit.clip(fit.to_metres(g)).is_empty
     for name, geoms in by_name.items():
-        if name and name not in mapped and not fit.clip(fit.to_metres(unary_union(geoms))).is_empty:
+        if name not in mapped and in_window(unary_union(geoms)):
             log(f'unmapped sea: {name}')
+    for i, (rec, g) in enumerate(records):
+        if not rec['name'] and i not in used and in_window(g):
+            p = g.representative_point()
+            log(f'unmapped sea: <unnamed> at ({p.x:.2f}, {p.y:.2f})')
     return out
 
 
