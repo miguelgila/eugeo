@@ -208,7 +208,14 @@ RIVERS: list[tuple[str, str, list[str]]] = [
     ('r:Volga', 'Volga', ['Volga']),
 ]
 
-RIVER_ANCHORS: dict[str, tuple[float, float]] = {}
+# Label anchor overrides in canvas px, tuned by eye with tools/preview.py so a deck's name chips
+# sit on their feature without covering the deck's other targets.
+RIVER_ANCHORS: dict[str, tuple[float, float]] = {
+    'r:Ebro': (288.9, 510.1),
+    'r:Rodano': (334.6, 483.9),
+    'r:Po': (399.9, 469.7),
+    'r:Volga': (682.4, 295.5),
+}
 
 
 def build_rivers(records: list[tuple[dict, BaseGeometry]], fit: Fit) -> list[dict]:
@@ -247,6 +254,15 @@ SEAS: list[dict] = [
             'Bristol Channel', 'Inner Seas', 'Norwegian Sea', 'Greenland Sea']},
 ]
 
+SEA_ANCHORS: dict[str, tuple[float, float]] = {
+    's:Mediterraneo': (311.0, 546.0),
+    's:Ligure': (368.0, 484.1),
+    's:Tirreno': (410.0, 530.0),
+    's:Adriatico': (452.5, 497.2),
+    's:Ionio': (486.0, 566.0),
+    's:Egeo': (555.2, 560.9),
+}
+
 
 def build_seas(records: list[tuple[dict, BaseGeometry]], fit: Fit, log=print) -> list[dict]:
     by_name: dict[str, list[BaseGeometry]] = {}
@@ -269,7 +285,7 @@ def build_seas(records: list[tuple[dict, BaseGeometry]], fit: Fit, log=print) ->
             used.update(i for i, _ in hits)
             parts += [g for _, g in hits]
         geom = unary_union(parts)
-        out.append({**_feature(sea['id'], sea['name'], geom, fit, 5), 'parent': sea['parent']})
+        out.append({**_feature(sea['id'], sea['name'], geom, fit, 5, SEA_ANCHORS), 'parent': sea['parent']})
     mapped = {n for sea in SEAS for n in sea['ne']}
     in_window = lambda g: not fit.clip(fit.to_metres(preclip(g))).is_empty
     for name, geoms in by_name.items():
@@ -297,6 +313,16 @@ RANGES: list[tuple[str, str, str | None]] = [
     ('m:MontiUrali', 'Monti Urali', 'URAL MOUNTAINS'),
 ]
 
+RANGE_ANCHORS: dict[str, tuple[float, float]] = {
+    'm:CordiglieraCantabrica': (237.0, 481.0),
+    'm:SierraNevada': (243.5, 562.0),
+    'm:Pirenei': (310.0, 500.0),
+    'm:MassiccioCentrale': (311.0, 462.5),
+    'm:Alpi': (388.5, 445.9),
+    'm:Appennino': (430.0, 513.0),
+    'm:AlpiDinariche': (453.1, 475.0),
+}
+
 
 def build_ranges(records: list[tuple[dict, BaseGeometry]], handdrawn: Path, fit: Fit) -> list[dict]:
     """Ranges from NE geography regions (`name`), or from the CC0 hand-drawn file when ne is None."""
@@ -315,7 +341,7 @@ def build_ranges(records: list[tuple[dict, BaseGeometry]], handdrawn: Path, fit:
             geom = unary_union(parts)
         if fid == 'm:SierraNevada' and geom.bounds[2] >= 0:
             raise SystemExit('range m:SierraNevada: matched a polygon outside Spain')
-        out.append(_feature(fid, name, geom, fit, 5))
+        out.append(_feature(fid, name, geom, fit, 5, RANGE_ANCHORS))
     return out
 
 

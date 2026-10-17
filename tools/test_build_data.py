@@ -177,3 +177,11 @@ def test_country_ids_unique_ascii(built):
 def test_greenland_sea_is_atlantic(built):
     atl = next(s for s in built['eu']['seas'] if s['id'] == 's:Atlantico')
     assert 'Greenland Sea' in next(s['ne'] for s in b.SEAS if s['id'] == 's:Atlantico') and atl['d']
+
+@needs_all
+def test_anchor_overrides_apply_to_known_targets(built):
+    for layer, table in (('rivers', b.RIVER_ANCHORS), ('seas', b.SEA_ANCHORS), ('ranges', b.RANGE_ANCHORS)):
+        by_id = {f['id']: f for f in built['eu'][layer]}
+        for fid, (cx, cy) in table.items():
+            assert fid in by_id and (by_id[fid]['cx'], by_id[fid]['cy']) == (cx, cy), fid
+            assert 0 <= cx <= b.W and 0 <= cy <= b.H, fid
