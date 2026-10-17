@@ -202,7 +202,7 @@
     box.classList.toggle('zoomed',v.z>1);el('zoomReset').textContent=v.z>1.01?Math.round(v.z*100)+'%':t('zoom');
     // tap areas sized in screen px (map units per px = u), so thin rivers and small pins stay finger-sized at any zoom
     const u=vw/(box.clientWidth||vw);nodes.riverHits.forEach(n=>n.style.strokeWidth=Math.max(16,30*u));nodes.pinHits.forEach(n=>n.setAttribute('r',Math.max(11,18*u)));
-    nodes.markHits.forEach(n=>n.setAttribute('r',Math.max(11,18*u)));nodes.marks.forEach(n=>n.setAttribute('r',6*u)); // markers: 6 px at any zoom
+    nodes.markHits.forEach(n=>n.setAttribute('r',18*u));nodes.marks.forEach(n=>n.setAttribute('r',6*u)); // markers: 6 px, tap area 18 px, at any zoom
     renderChips();}
   window.addEventListener('resize',applyView);
   const ptrs={};let moved=0,dragged=false;
