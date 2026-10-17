@@ -1,7 +1,7 @@
 """Render data.js to tools/preview.svg with a label at every target's anchor, for eye-checking.
 
 Usage:
-    .venv/bin/python tools/preview.py [rivers|seas|ranges ...]   # label only these decks (default: all)
+    .venv/bin/python tools/preview.py [rivers|seas|ranges|countries|capitals ...]   # only these decks (default: all)
     sips -s format png tools/preview.svg --out tools/preview.png   # macOS: rasterise at canvas size
 (`qlmanage -t` also works but squares the thumbnail and crops the right of the map.)
 """
@@ -22,7 +22,7 @@ STYLE = {  # layer: (fill, stroke, stroke-width, label colour)
 
 
 def main() -> None:
-    decks = sys.argv[1:] or ['seas', 'ranges', 'rivers']
+    decks = sys.argv[1:] or ['seas', 'ranges', 'rivers', 'countries', 'capitals']
     src = (ROOT / 'data.js').read_text(encoding='utf-8')
     eu = json.loads(src[src.index('{'):src.rindex(';')])['eu']
     w, h = eu['w'], eu['h']
@@ -40,6 +40,14 @@ def main() -> None:
                        f'fill="#fff" fill-opacity=".92" stroke="{colour}" stroke-width="1"/>'
                        f'<text x="{x}" y="{y + 3.5}" font-family="Helvetica" font-size="10" '
                        f'font-weight="bold" text-anchor="middle" fill="{colour}">{n}</text>')
+    # Stati: a cross at each roster country's anchor; Capitali: a dot at each capital.
+    for f in [c for c in eu['countries'] if c.get('target')] if 'countries' in decks else []:
+        x, y = f['cx'], f['cy']
+        out.append(f'<path d="M{x - 4} {y}H{x + 4}M{x} {y - 4}V{y + 4}" stroke="#B0302A" stroke-width="1.5"/>'
+                   f'<text x="{x + 5}" y="{y - 3}" font-family="Helvetica" font-size="7" '
+                   f'fill="#B0302A">{escape(f["name"])}</text>')
+    for f in eu['cities'] if 'capitals' in decks else []:
+        out.append(f'<circle cx="{f["cx"]}" cy="{f["cy"]}" r="2.5" fill="#222" stroke="#fff" stroke-width="1"/>')
     out.append('</svg>')
     (ROOT / 'tools' / 'preview.svg').write_text('\n'.join(out), encoding='utf-8')
 

@@ -35,6 +35,11 @@ def countries_records():
 
 
 @pytest.fixture(scope='module')
+def places_records():
+    return b.read_shp(b.fetch('places', CACHE))
+
+
+@pytest.fixture(scope='module')
 def built():
     return b.build(CACHE)
 
@@ -216,3 +221,24 @@ def test_country_coverage_is_valid(countries_records, fit):
     pairs = b.country_geoms(countries_records, fit)
     assert shapely.coverage_is_valid([g for _, g in pairs])
     assert all(not g.is_empty for rec, g in pairs if rec['adm0_a3'] in b.COUNTRIES)
+
+@needs_all
+def test_capitals_cover_roster(built):
+    cities = built['eu']['cities']
+    assert len(cities) == 46 and all(c['capital'] for c in cities)
+    assert {c['country'] for c in cities} == {c['id'] for c in built['eu']['countries'] if c.get('target')}
+    assert len({c['id'] for c in cities}) == 46 and all(c['id'].startswith('t:') for c in cities)
+    assert [c['name'] for c in cities] == [n for _, n in b.CAPITALS]
+    assert all(re.fullmatch('[A-Z]{2}', c['iso']) for c in cities)  # Kosovo's place record says -99
+
+@needs_all
+def test_capitals_are_inside_their_country(built, countries_records, fit):
+    geom = {b._country_id(rec['name_it']): g for rec, g in b.country_geoms(countries_records, fit)}
+    for c in built['eu']['cities']:
+        assert geom[c['country']].distance(shapely.Point(c['cx'], c['cy'])) < 2, c['id']
+
+@needs_all
+def test_capital_table_entry_without_match_exits(places_records, built, fit, monkeypatch):
+    monkeypatch.setattr(b, 'CAPITALS', b.CAPITALS + [('ZZZ', 'Nowhere')])
+    with pytest.raises(SystemExit, match='ZZZ'):
+        b.build_cities(places_records, built['eu']['countries'], fit)

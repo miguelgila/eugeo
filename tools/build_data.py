@@ -330,7 +330,11 @@ COUNTRIES: frozenset[str] = frozenset('''
 '''.split())
 SMALL_AREA = 12  # canvas units²; roster countries below this get a tap marker (the microstates)
 
-COUNTRY_ANCHORS: dict[str, tuple[float, float]] = {}
+COUNTRY_ANCHORS: dict[str, tuple[float, float]] = {
+    'c:Norvegia': (388.0, 250.0),  # southern mainland, not Svalbard
+    'c:Croazia': (445.0, 458.0),  # inland arm, off the Kvarner coast
+    'c:RegnoUnito': (295.0, 355.0),  # English Midlands, centred on Great Britain
+}
 
 
 def build_ranges(records: list[tuple[dict, BaseGeometry]], handdrawn: Path, fit: Fit) -> list[dict]:
@@ -420,13 +424,38 @@ def build_lakes(records: list[tuple[dict, BaseGeometry]], fit: Fit) -> list[dict
     return out
 
 
-def build_cities(records: list[tuple[dict, BaseGeometry]], fit: Fit) -> list[dict]:
-    """Stub: no cities yet.
+# The Capitali deck: (ADM0_A3, Italian name), in roster order; matched on `adm0cap == 1`.
+CAPITALS: list[tuple[str, str]] = [
+    ('ALB', 'Tirana'), ('AND', 'Andorra la Vella'), ('AUT', 'Vienna'), ('BLR', 'Minsk'),
+    ('BEL', 'Bruxelles'), ('BIH', 'Sarajevo'), ('BGR', 'Sofia'), ('HRV', 'Zagabria'),
+    ('CYP', 'Nicosia'), ('CZE', 'Praga'), ('DNK', 'Copenaghen'), ('EST', 'Tallinn'),
+    ('FIN', 'Helsinki'), ('FRA', 'Parigi'), ('DEU', 'Berlino'), ('GRC', 'Atene'),
+    ('HUN', 'Budapest'), ('ISL', 'Reykjavík'), ('IRL', 'Dublino'), ('ITA', 'Roma'),
+    ('KOS', 'Pristina'), ('LVA', 'Riga'), ('LIE', 'Vaduz'), ('LTU', 'Vilnius'),
+    ('LUX', 'Lussemburgo'), ('MLT', 'La Valletta'), ('MDA', 'Chișinău'), ('MCO', 'Monaco'),
+    ('MNE', 'Podgorica'), ('NLD', 'Amsterdam'), ('MKD', 'Skopje'), ('NOR', 'Oslo'),
+    ('POL', 'Varsavia'), ('PRT', 'Lisbona'), ('ROU', 'Bucarest'), ('RUS', 'Mosca'),
+    ('SMR', 'San Marino'), ('SRB', 'Belgrado'), ('SVK', 'Bratislava'), ('SVN', 'Lubiana'),
+    ('ESP', 'Madrid'), ('SWE', 'Stoccolma'), ('CHE', 'Berna'), ('UKR', 'Kiev'),
+    ('GBR', 'Londra'), ('VAT', 'Città del Vaticano'),
+]
 
-    Future: capitals from ne_10m_populated_places_simple (`adm0cap == 1`, ranked by `pop_max`),
-    each as {id: 't:<name>', name, cx, cy, capital, iso}.
-    """
-    return []
+
+def build_cities(records: list[tuple[dict, BaseGeometry]], countries: list[dict], fit: Fit) -> list[dict]:
+    """Capitals of the roster countries from NE populated places, linked to their country id."""
+    by_a3 = {c['a3']: c for c in countries}
+    out = []
+    for a3, name in CAPITALS:
+        recs = [rec for rec, _ in records if rec['adm0cap'] == 1 and rec['adm0_a3'] == a3]
+        if len(recs) != 1 or a3 not in by_a3:
+            raise SystemExit(f'capital {a3}: {len(recs)} records with adm0cap == 1, '
+                             f'{"a" if a3 in by_a3 else "no"} country')
+        rec, c = recs[0], by_a3[a3]
+        p = fit.to_canvas(Point(rec['longitude'], rec['latitude']))
+        # iso from the country, which falls back to iso_a2_eh: Kosovo's place record says -99
+        out.append({'id': 't:' + _country_id(name)[2:], 'name': name, 'cx': round(p.x, 1),
+                    'cy': round(p.y, 1), 'capital': True, 'iso': c['iso'], 'country': c['id']})
+    return out
 
 
 def build(cache: Path) -> dict:
@@ -437,12 +466,12 @@ def build(cache: Path) -> dict:
         'version': {'ne': {name: read_version(cache, name) for name in DATASETS},
                     'built': date.today().isoformat()},
         'land': build_land(rec['land'], fit),
-        'countries': build_countries(rec['countries'], fit),
+        'countries': (countries := build_countries(rec['countries'], fit)),
         'lakes': build_lakes(rec['lakes'], fit),
         'rivers': build_rivers(rec['rivers'], fit),
         'seas': build_seas(rec['marine'], fit),
         'ranges': build_ranges(rec['regions'], HANDDRAWN, fit),
-        'cities': build_cities(rec['places'], fit),
+        'cities': build_cities(rec['places'], countries, fit),
     }}
 
 
