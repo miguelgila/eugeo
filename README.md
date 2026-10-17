@@ -11,8 +11,8 @@ It is a single static page: `index.html` (markup, styles, logic), `i18n.js` (UI 
 | Fiumi | 13 | Tago to Volga. Tap near the river line. |
 | Mari e oceani | 11 | The Mediterranean contains the Ligurian, Tyrrhenian, Adriatic, Ionian and Aegean seas: placing *Mar Mediterraneo* on the open Mediterranean also colours those inner seas, unless one of them has its own card. The Caspian is in this deck. |
 | Catene montuose | 12 | Drawn as translucent brown areas so country borders stay visible beneath. |
-| Stati | 46 | Tap the country. The six microstates (Andorra, Liechtenstein, Malta, Monaco, San Marino, Vatican) also have a dot that is easy to tap at any zoom. |
-| Capitali | 46 | The capitals of the same 46 countries, shown as dots. Tap the country the capital belongs to. |
+| Stati | 46 | Tap the country. The six microstates (Andorra, Liechtenstein, Malta, Monaco, San Marino, Vatican) also have a dot; on a phone, zoom in to tap them. |
+| Capitali | 46 | The capitals of the same 46 countries, shown as dots after Verifica. Tap the country the capital belongs to. |
 
 Countries outside the Stati deck, such as Turkey, the Caucasus and North Africa, are drawn as background only, for orientation.
 
@@ -67,4 +67,4 @@ See [tools/README.md](tools/README.md) for the details: name and merge tables, l
 
 ## Adding a deck
 
-Decks live in `MAPS.eu.modes` at the top of the script in `index.html`. A deck is a `mode` with an `id`, a `kind` (`river`, `sea`, `zone`, `country` or `pin`), an optional `dots` flag that shows the cities as plain dots (used by Capitali) and a `targets()` function returning `{id, name, cx, cy}` items; the geometry it refers to must exist in `data.js` and be wired into the matching layer of `MAPS.eu`. Its labels go in `i18n.js` as `mode.<id>.label`, `.tray`, `.subtitle`, `.what` and `.help`, and its place names in `places`. New geometry is added in `tools/build_data.py`, never in `data.js`.
+Decks live in `MAPS.eu.modes` at the top of the script in `index.html`. A deck is a `mode` with an `id`, a `kind` (`river`, `sea`, `zone`, `country` or `pin`), an optional `dots` flag that shows the cities as plain dots after Verifica (used by Capitali) and a `targets()` function returning `{id, name, cx, cy}` items; the geometry it refers to must exist in `data.js` and be wired into the matching layer of `MAPS.eu`. Its labels go in `i18n.js` as `mode.<id>.label`, `.tray`, `.subtitle`, `.what` and `.help`, and its place names in `places`. New geometry is added in `tools/build_data.py`, never in `data.js`.

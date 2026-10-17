@@ -65,7 +65,7 @@ sips -s format png tools/preview.svg --out tools/preview.png   # macOS
 
 ### Layers and tables
 
-All the content decisions live in tables near the top of `build_data.py`. For rivers, seas, ranges and capitals, IDs are stable keys derived from the Italian name, and the Italian `name` comes from these tables, not from Natural Earth's `name_it`. Countries use NE `name_it` (see below). `_country_id()` folds every name to ASCII and drops spaces and punctuation but keeps the casing (`c:PrincipatodiMonaco`, `t:AndorralaVella`).
+All the content decisions live in tables near the top of `build_data.py`. For rivers, seas and ranges, IDs are hand-written stable keys in the `RIVERS`/`SEAS`/`RANGES` tables, based on the Italian name (`r:Tago`, `s:MareDelNord`), and the Italian `name` comes from these tables, not from Natural Earth's `name_it`. Countries use NE `name_it` (see below). Country and capital IDs come from `_country_id()`, which folds the name to ASCII and drops spaces and punctuation but keeps the casing (`c:PrincipatodiMonaco`, `t:AndorralaVella`).
 
 - **`RIVERS`**: `(id, Italian name, [NE name_en values])`. Every record whose `name_en` is in the list is merged, river and lake-centreline parts alike.
 - **`SEAS`**: the sea merge table. Natural Earth splits the seas into many non-overlapping polygons, so each target lists the NE `name` values to union (e.g. *Mar Baltico* is Baltic Sea plus its gulfs, Øresund and two bays). `points` adds polygons by location, for the unnamed Great Belt polygon. `parent` marks the five inner seas of the Mediterranean (`s:Ligure`, `s:Tirreno`, `s:Adriatico`, `s:Ionio`, `s:Egeo`); `s:Mediterraneo` itself is only the remainder outside them, and the game colours its children with it. Comments in the table record Natural Earth naming quirks (no Celtic Sea polygon, Sea of the Hebrides named `Inner Seas`).
@@ -90,5 +90,5 @@ Natural Earth has no polygon for the Apennines or the Cantabrian Mountains, so t
 
 1. Extend `build_cities()` to also select those records from `ne_10m_populated_places_simple` (e.g. by `pop_max` inside the window), with Italian names from a new table and `t:` IDs. Emit them without `capital: True`, and keep the capitals unchanged.
 2. Add the Italian names to `places` in `../i18n.js`.
-3. In `../index.html`, add a mode with `kind: 'pin'` whose `targets()` returns those cities by their `t:` IDs (the engine already draws pins and their tap areas). Every `cities` entry becomes a pin, and the Capitali deck shows all pins as dots, so give that deck a way to hide the non-capital pins.
+3. In `../index.html`, add a mode with `kind: 'pin'` whose `targets()` returns those cities by their `t:` IDs (the engine already draws pins and their tap areas). Every `cities` entry becomes a pin, and the Capitali deck shows all pins as dots after Verifica, so give that deck a way to hide the non-capital pins.
 4. Add the `mode.<id>.*` UI strings to every language in `i18n.js`, add tests, rebuild and check with `preview.py`.
