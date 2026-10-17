@@ -20,6 +20,11 @@ def marine_records():
     return b.read_shp(b.fetch('marine', CACHE))
 
 
+@pytest.fixture(scope='module')
+def regions_records():
+    return b.read_shp(b.fetch('regions', CACHE))
+
+
 def test_to_path_polygon_with_hole():
     p = Polygon([(0,0),(10,0),(10,10),(0,10)], [[(2,2),(4,2),(4,4),(2,4)]])
     assert b.to_path(p) == "M0.0 0.0L10.0 0.0L10.0 10.0L0.0 10.0ZM2.0 2.0L4.0 2.0L4.0 4.0L2.0 4.0Z"
@@ -70,3 +75,23 @@ def test_unmapped_seas_are_logged(marine_records, fit):
     b.build_seas(marine_records, fit, log=seen.append)
     assert any('Sea of Marmara' in m for m in seen)
     assert not any('Gulf of Bothnia' in m for m in seen)
+
+needs_regions = pytest.mark.skipif(not (CACHE/'ne_10m_geography_regions_polys').exists(), reason='no cache')
+
+@needs_regions
+def test_ranges_cover_spec_list(regions_records, fit):
+    out = b.build_ranges(regions_records, b.HANDDRAWN, fit)
+    assert [r['id'] for r in out] == [r[0] for r in b.RANGES]
+
+def test_handdrawn_is_sane():
+    import json
+    gj = json.loads(b.HANDDRAWN.read_text())
+    ids = {f['properties']['id'] for f in gj['features']}
+    assert ids == {'m:Appennino','m:CordiglieraCantabrica'}
+    for f in gj['features']:
+        assert f['properties']['license'] == 'CC0-1.0' and 8 <= len(f['geometry']['coordinates'][0]) - 1 <= 15
+
+@needs_regions
+def test_sierra_nevada_is_the_spanish_one(regions_records, fit):
+    sn = next(r for r in b.build_ranges(regions_records, b.HANDDRAWN, fit) if r['id']=='m:SierraNevada')
+    assert sn['cx'] < b.W * 0.3

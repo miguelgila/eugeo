@@ -1,4 +1,5 @@
 """Build the eugeo map data from Natural Earth 1:10m shapefiles (public domain)."""
+import json
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -28,6 +29,7 @@ MARGIN = 16
 WINDOW = (-25.0, 33.0, 70.0, 72.0)  # lon_min, lat_min, lon_max, lat_max
 
 CACHE = Path(__file__).resolve().parent / 'cache'
+HANDDRAWN = Path(__file__).resolve().parent / 'handdrawn.geojson'
 
 _TO_LAEA = Transformer.from_crs('EPSG:4326', 'EPSG:3035', always_xy=True)
 
@@ -235,6 +237,43 @@ def build_seas(records: list[tuple[dict, BaseGeometry]], fit: Fit, log=print) ->
     for name, geoms in by_name.items():
         if name and name not in mapped and not fit.clip(fit.to_metres(unary_union(geoms))).is_empty:
             log(f'unmapped sea: {name}')
+    return out
+
+
+RANGES: list[tuple[str, str, str | None]] = [
+    ('m:CordiglieraCantabrica', 'Cordigliera Cantabrica', None),
+    ('m:SierraNevada', 'Sierra Nevada', 'S. Nevada'),
+    ('m:Pirenei', 'Pirenei', 'PYRENEES'),
+    ('m:MassiccioCentrale', 'Massiccio Centrale', 'Massif Central'),
+    ('m:Alpi', 'Alpi', 'ALPS'),
+    ('m:Appennino', 'Appennino', None),
+    ('m:AlpiDinariche', 'Alpi Dinariche', 'Dinaric Alps'),
+    ('m:Balcani', 'Balcani', 'Balkan Mts.'),
+    ('m:Carpazi', 'Carpazi', 'CARPATHIAN MOUNTAINS'),
+    ('m:MontiScandinavi', 'Monti Scandinavi', 'KJØLEN MOUNTAINS'),
+    ('m:Caucaso', 'Caucaso', 'CAUCASUS MTS.'),
+    ('m:MontiUrali', 'Monti Urali', 'URAL MOUNTAINS'),
+]
+
+
+def build_ranges(records: list[tuple[dict, BaseGeometry]], handdrawn: Path, fit: Fit) -> list[dict]:
+    """Ranges from NE geography regions (`name`), or from the CC0 hand-drawn file when ne is None."""
+    drawn = {f['properties']['id']: shape(f['geometry'])
+             for f in json.loads(handdrawn.read_text())['features']}
+    out = []
+    for fid, name, ne in RANGES:
+        if ne is None:
+            if fid not in drawn:
+                raise SystemExit(f'range {fid}: missing from {handdrawn.name}')
+            geom = drawn[fid]
+        else:
+            parts = [g for rec, g in records if rec['name'] == ne]
+            if not parts:
+                raise SystemExit(f'range {fid}: no region polygon named {ne!r}')
+            geom = unary_union(parts)
+        if fid == 'm:SierraNevada' and geom.bounds[2] >= 0:
+            raise SystemExit('range m:SierraNevada: matched a polygon outside Spain')
+        out.append(_feature(fid, name, geom, fit, 5))
     return out
 
 
