@@ -130,6 +130,7 @@ def test_preclip_drops_far_geometry(fit):
 def test_country_id_strips_accents_and_spaces():
     assert b._country_id("Città del Vaticano") == 'c:CittadelVaticano'
     assert b._country_id("Costa d'Avorio") == 'c:CostadAvorio'
+    assert b._country_id('Fær Øer') == 'c:FaerOer'
 
 needs_all = pytest.mark.skipif(not all((CACHE/b._ne_name(n)).exists() for n in b.DATASETS), reason='no cache')
 
@@ -155,3 +156,18 @@ def test_data_js_is_parseable(tmp_path, built):
 @needs_all
 def test_size_budget(tmp_path, built):
     out = tmp_path/'data.js'; b.write_data_js(built, out); assert out.stat().st_size < 600_000
+
+@needs_all
+def test_country_iso_falls_back_to_eh(built):
+    iso = {c['id']: c['iso'] for c in built['eu']['countries']}
+    assert iso['c:Francia'] == 'FR' and iso['c:Norvegia'] == 'NO'
+
+@needs_all
+def test_country_ids_unique_ascii(built):
+    ids = [c['id'] for c in built['eu']['countries']]
+    assert len(ids) == len(set(ids)) and all(i.isascii() for i in ids)
+
+@needs_all
+def test_greenland_sea_is_atlantic(built):
+    atl = next(s for s in built['eu']['seas'] if s['id'] == 's:Atlantico')
+    assert 'Greenland Sea' in next(s['ne'] for s in b.SEAS if s['id'] == 's:Atlantico') and atl['d']

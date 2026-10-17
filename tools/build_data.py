@@ -230,7 +230,7 @@ SEAS: list[dict] = [
      # NE 5.x has no 'Celtic Sea' polygon (that water is part of 'North Atlantic Ocean'),
      # and the Sea of the Hebrides is named 'Inner Seas' (name_en 'Sea of the Hebrides').
      'ne': ['North Atlantic Ocean', 'Bay of Biscay', 'Irish Sea', 'English Channel',
-            'Bristol Channel', 'Inner Seas', 'Norwegian Sea']},
+            'Bristol Channel', 'Inner Seas', 'Norwegian Sea', 'Greenland Sea']},
 ]
 
 
@@ -316,9 +316,14 @@ def build_land(records: list[tuple[dict, BaseGeometry]], fit: Fit) -> list[dict]
     return [{'d': to_path(feature_to_canvas(geom, fit, BG_TOL_KM))}]
 
 
+# Letters NFKD does not decompose into an ASCII base.
+_TRANSLIT = str.maketrans({'æ': 'ae', 'Æ': 'Ae', 'ø': 'o', 'Ø': 'O', 'ß': 'ss', 'ð': 'd', 'Ð': 'D',
+                           'þ': 'th', 'Þ': 'Th', 'ł': 'l', 'Ł': 'L', 'œ': 'oe', 'Œ': 'Oe'})
+
+
 def _country_id(name: str) -> str:
     plain = ''.join(c for c in unicodedata.normalize('NFKD', name) if not unicodedata.combining(c))
-    return 'c:' + ''.join(c for c in plain if c.isalnum())
+    return 'c:' + ''.join(c for c in plain.translate(_TRANSLIT) if c.isascii() and c.isalnum())
 
 
 def build_countries(records: list[tuple[dict, BaseGeometry]], fit: Fit) -> list[dict]:
@@ -331,8 +336,12 @@ def build_countries(records: list[tuple[dict, BaseGeometry]], fit: Fit) -> list[
         if c.is_empty:  # inside PRECLIP but off the canvas
             continue
         cx, cy = anchor(c)
-        out.append({'id': _country_id(rec['name_it']), 'name': rec['name_it'], 'iso': rec['iso_a2'],
+        iso = rec['iso_a2'] if rec['iso_a2'] != '-99' else rec['iso_a2_eh']  # e.g. France, Norway
+        out.append({'id': _country_id(rec['name_it']), 'name': rec['name_it'], 'iso': iso,
                     'd': to_path(c), 'cx': cx, 'cy': cy})
+    ids = [c['id'] for c in out]
+    if len(ids) != len(set(ids)):
+        raise SystemExit(f'countries: duplicate ids {sorted({i for i in ids if ids.count(i) > 1})}')
     return out
 
 
