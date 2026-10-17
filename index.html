@@ -60,14 +60,15 @@
   .sea{cursor:pointer;stroke:#fff;stroke-width:1;stroke-linejoin:round;transition:fill .15s}
   .range{cursor:pointer;stroke-width:1.2;stroke-dasharray:4 3;stroke-linejoin:round;transition:fill .15s}
   .sea:hover,.range:hover{filter:brightness(.93)}
+  .country.target:hover{filter:brightness(.93)}
   .river{fill:none;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
   .hit{cursor:pointer}
   .riverHit{fill:none;stroke:rgba(0,0,0,0);stroke-width:16;pointer-events:stroke;cursor:pointer}
   .pin{stroke:#fff;stroke-width:2.5;pointer-events:none}
   .pinHit{fill:transparent;cursor:pointer}
   .country.target{cursor:pointer;transition:fill .15s}
-  .mark{stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke;pointer-events:none}
-  .markHit{fill:transparent;cursor:pointer}
+  .micro{stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke;pointer-events:none}
+  .microHit{fill:transparent;cursor:pointer}
   .chip{position:absolute;transform:translate(-50%,-50%);padding:3px 8px;border-radius:999px;border:1.5px solid var(--bad);background:#fff;color:var(--bad);font-size:11px;font-weight:700;line-height:1.2;white-space:nowrap;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.18)}
   .chip.up{transform:translate(-50%,-170%)}
   .chip.name{border-color:var(--btn);color:var(--ink);background:rgba(255,255,255,.92);font-size:10px;padding:2px 6px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
@@ -202,8 +203,11 @@
     box.classList.toggle('zoomed',v.z>1);el('zoomReset').textContent=v.z>1.01?Math.round(v.z*100)+'%':t('zoom');
     // tap areas sized in screen px (map units per px = u), so thin rivers and small pins stay finger-sized at any zoom
     const u=vw/(box.clientWidth||vw);nodes.riverHits.forEach(n=>n.style.strokeWidth=Math.max(16,30*u));nodes.pinHits.forEach(n=>n.setAttribute('r',Math.max(11,18*u)));
-    nodes.markHits.forEach(n=>n.setAttribute('r',18*u));nodes.marks.forEach(n=>n.setAttribute('r',6*u)); // markers: 6 px, tap area 18 px, at any zoom
-    renderChips();}
+    // microstate markers: 6 px, tap area 18 px, capped at 3/6 map units so on phones they don't cover their neighbours (zoom in to tap)
+    nodes.microHits.forEach(n=>n.setAttribute('r',Math.min(18*u,6)));nodes.micros.forEach(n=>n.setAttribute('r',Math.min(6*u,3)));
+    pinU=u;sizePins();renderChips();}
+  // capital dots: 3.5 px, capped at 2 map units; pins of a 'pin' deck keep r=11
+  let pinU=1;function sizePins(){const d=mode().dots;nodes.pins.forEach(n=>n.setAttribute('r',d?Math.min(3.5*pinU,2):11));}
   window.addEventListener('resize',applyView);
   const ptrs={};let moved=0,dragged=false;
   box.addEventListener('pointerdown',e=>{ptrs[e.pointerId]={x:e.clientX,y:e.clientY};moved=0;});
@@ -231,7 +235,7 @@
   el('namesBtn').onclick=()=>{S.names=!S.names;render();};
 
   // ---------- SVG build (once per map) ----------
-  const nodes={land:[],countries:[],lakes:[],seas:[],ranges:[],rivers:[],riverHits:[],marks:[],markHits:[],pins:[],pinHits:[]};
+  const nodes={land:[],countries:[],lakes:[],seas:[],ranges:[],rivers:[],riverHits:[],micros:[],microHits:[],pins:[],pinHits:[]};
   function mk(tag,attrs,cls){const n=document.createElementNS(SVGNS,tag);for(const k in attrs)n.setAttribute(k,attrs[k]);if(cls)n.setAttribute('class',cls);return n;}
   function buildSvg(){svg.innerHTML='';for(const k in nodes)nodes[k]=[];const m=map();
     box.style.aspectRatio=m.w+' / '+m.h;el('mapPanel').classList.toggle('portrait',m.portrait);
@@ -244,11 +248,11 @@
     m.ranges.forEach(r=>{const n=mk('path',{d:r.d},'range');n.onclick=()=>pickTarget(r.id);svg.appendChild(n);nodes.ranges.push(n);});
     m.rivers.forEach(r=>{const n=mk('path',{d:r.d},'river');svg.appendChild(n);nodes.rivers.push(n);});
     m.rivers.forEach(r=>{const n=mk('path',{d:r.d},'riverHit');n.onclick=()=>pickTarget(r.id);svg.appendChild(n);nodes.riverHits.push(n);});
-    // roster microstates get a marker, indexed like m.countries.filter(c=>c.small&&c.target)
-    m.countries.filter(c=>c.small&&c.target).forEach(c=>{const n=mk('circle',{cx:c.cx,cy:c.cy,r:5},'mark');svg.appendChild(n);nodes.marks.push(n);});
-    m.countries.filter(c=>c.small&&c.target).forEach(c=>{const n=mk('circle',{cx:c.cx,cy:c.cy,r:11},'markHit');n.onclick=()=>pickTarget(c.id);svg.appendChild(n);nodes.markHits.push(n);});
     m.pins.forEach(p=>{const n=mk('circle',{cx:p.cx,cy:p.cy,r:11},'pin');svg.appendChild(n);nodes.pins.push(n);});
-    m.pins.forEach(p=>{const n=mk('circle',{cx:p.cx,cy:p.cy,r:11},'pinHit');n.onclick=()=>pickTarget(p.id);svg.appendChild(n);nodes.pinHits.push(n);});}
+    m.pins.forEach(p=>{const n=mk('circle',{cx:p.cx,cy:p.cy,r:11},'pinHit');n.onclick=()=>pickTarget(p.id);svg.appendChild(n);nodes.pinHits.push(n);});
+    // roster microstates get a marker, indexed like m.countries.filter(c=>c.small&&c.target); drawn after the pins so they sit on the capital dots
+    m.countries.filter(c=>c.small&&c.target).forEach(c=>{const n=mk('circle',{cx:c.cx,cy:c.cy,r:5},'micro');svg.appendChild(n);nodes.micros.push(n);});
+    m.countries.filter(c=>c.small&&c.target).forEach(c=>{const n=mk('circle',{cx:c.cx,cy:c.cy,r:11},'microHit');n.onclick=()=>pickTarget(c.id);svg.appendChild(n);nodes.microHits.push(n);});}
 
   // ---------- render ----------
   function status(id,idle,done,none,counter){const card=S.placed[id];
@@ -282,9 +286,12 @@
       if(active)cf[c.id]=status(c.id,'#F1E7CF',tint(i,55,55),'#D7D7D1',cnt);
       // inline styles, since the .country rule beats attributes; '' falls back to its background look
       n.style.fill=active?cf[c.id]:'';n.style.stroke=active?'#8B8B84':'';n.style.pointerEvents=active?'auto':'';});
-    m.countries.filter(c=>c.small&&c.target).forEach((c,i)=>{const on=k==='country';nodes.marks[i].style.display=nodes.markHits[i].style.display=on?'':'none';if(on)nodes.marks[i].setAttribute('fill',cf[c.id]);});
-    m.pins.forEach((p,i)=>{const n=nodes.pins[i];n.style.display=k==='pin'||M.dots?'':'none';nodes.pinHits[i].style.display=k==='pin'?'':'none';
-      n.setAttribute('fill',k==='pin'?status(p.id,'#6B6B66',tint(i,45,70),'#D7D7D1',cnt):'#1C1C1A');n.setAttribute('r',M.dots?4:11);n.style.strokeWidth=M.dots?1.5:'';});
+    m.countries.filter(c=>c.small&&c.target).forEach((c,i)=>{const on=k==='country';nodes.micros[i].style.display=nodes.microHits[i].style.display=on?'':'none';if(on)nodes.micros[i].setAttribute('fill',cf[c.id]);});
+    // capital dots only after Verifica: Rome's dot sits inside the Vatican's tap circle
+    m.pins.forEach((p,i)=>{const n=nodes.pins[i];n.style.display=k==='pin'||(M.dots&&S.checked)?'':'none';nodes.pinHits[i].style.display=k==='pin'?'':'none';
+      n.setAttribute('fill',k==='pin'?status(p.id,'#6B6B66',tint(i,45,70),'#D7D7D1',cnt):'#1C1C1A');
+      n.style.strokeWidth=M.dots?'1.5px':'';n.style.vectorEffect=M.dots?'non-scaling-stroke':'';});
+    sizePins();
     // cards
     const placedCards=new Set(Object.values(S.placed));const cards=el('cards');cards.innerHTML='';
     const left=S.order.filter(a=>!placedCards.has(a));
