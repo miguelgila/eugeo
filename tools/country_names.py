@@ -13,6 +13,8 @@ LANGS = ['it', 'en', 'fr', 'de', 'es']
 # Applied last, over the Natural Earth names.
 OVERRIDES: dict[str, dict[str, str]] = {
     'c:PrincipatodiMonaco': {'it': 'Monaco', 'en': 'Monaco', 'fr': 'Monaco', 'de': 'Monaco', 'es': 'Mónaco'},
+    'c:Cipro': {'de': 'Zypern'},
+    'c:Moldavia': {'de': 'Moldau'},
 }
 
 
