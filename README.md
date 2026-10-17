@@ -28,7 +28,7 @@ then open <http://localhost:8000>.
 
 Settings → Pages → *Deploy from a branch* → `main` / root. `.nojekyll` is present so the files are served as they are.
 
-The site uses the custom domain `eugeo.giar.dev`: the `CNAME` file in the repo root contains it, and the DNS has a `CNAME` record `eugeo` → `miguelgila.github.io`. GitHub provisions the TLS certificate automatically; tick *Enforce HTTPS* once it is issued.
+The site uses the custom domain `eugeo.giar.dev`: the `CNAME` file in the repo root contains it. At the DNS provider, add a `CNAME` record `eugeo` → `miguelgila.github.io`. GitHub provisions the TLS certificate automatically; tick *Enforce HTTPS* once it is issued.
 
 The footer credits Natural Earth and has a plain Ko-fi link. There are no analytics, cookies or third-party scripts, because the audience is schoolchildren. The only external resource is the Manrope font stylesheet from Google Fonts.
 

@@ -16,7 +16,7 @@ window.I18N = {
       progress: '{0} / {1} piazzate', left: '{0} rimaste', score: '{0} su {1} giuste',
       perfect: 'Perfetto! Premi "Ricomincia" per rigiocare.',
       retry: 'Le etichette rosse mostrano il nome giusto. Premi "Ricomincia" per riprovare.',
-      review: 'Da ripassare', wrong: '{0} non è qui: questo è {1}',
+      review: 'Da ripassare', wrong: 'Al posto di {1} hai messo {0}.',
       empty: 'Tutte le carte sono sulla mappa. Premi "Verifica" per vedere com\'è andata.',
       helpChecked: 'Premi "Ricomincia" per mescolare le carte e rigiocare.',
       helpSelected: 'Ora tocca {0} per "{1}".',
