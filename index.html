@@ -216,6 +216,7 @@
   function pickTarget(id){if(S.checked||dragged||!byId[id])return;
     if(S.selected){S.placed[id]=S.selected;S.selected=null;}
     else if(S.placed[id]){delete S.placed[id];}
+    else{const p=(map().seas.find(s=>s.id===id)||{}).parent;if(p&&S.placed[p])delete S.placed[p];}
     render();}
   function pickCard(id){S.selected=S.selected===id?null:id;render();}
   el('resetBtn').onclick=()=>{fresh();render();};
